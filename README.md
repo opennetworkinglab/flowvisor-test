@@ -1,25 +1,21 @@
 FlowVisor Testing Framework
 Jan, 2012
 
+License
+=======
+
 Copyright (c) 2012 The Board of Trustees of The Leland Stanford
 Junior University
 
-Warning
-+++++++
-
-
-License
-+++++++
-
 
 Getting FVTest
-++++++++++++++
+==============
 
     You can check out FVTest with git with the following command:
     # git clone git@bitbucket.org:onlab/flowvisor-test.git
 
 Introduction
-++++++++++++
+============
 
     This test framework(FVTest) is a Python based test framework
     and collection of test cases.
@@ -46,7 +42,7 @@ Introduction
     messages and wrapping python unit test.
 
 Quick Start
-+++++++++++
+===========
 
     You need to have Python setup tools and Scapy installed on your
     system.  See 'Pre-requisites' below.
@@ -63,7 +59,7 @@ Quick Start
       # ./fvt --test-spec=<mod>
 
 Longer Start
-++++++++++++
+============
 
     1.  Pre-requisites:
         * A FlowVisor to test, which supports OpenFlow 1.0
@@ -96,7 +92,7 @@ Longer Start
         ./fvt --help
 
 Helpful Note: Rebuilding
-++++++++++++++++++++++++
+========================
 
     If you ever make a change to the code in src/oftest/python...
     you must rebuild and reinstall the source code.  See Step (2)
@@ -111,7 +107,7 @@ Helpful Note: Rebuilding
     information.
 
 FVT Command Line Options
-++++++++++++++++++++++++
+========================
 
     Here is a summary of the fvt command line options.  Use --help to see
     the long and short command option names.
@@ -126,7 +122,7 @@ FVT Command Line Options
     timeout           : Seconds before the test gives up receiving packet
 
 Overview
-++++++++
+========
 
     The directory structure is currently:
 
@@ -163,7 +159,7 @@ Overview
     top level entry point for tests.  Try ./fvt --help for some more.
 
 Important Notes
-+++++++++++++++
+===============
 
     1.  If you edit any of the files in src/python/oftest or any of the
     scripts in tools/munger/scripts, you MUST re-run make install.  This
@@ -175,7 +171,7 @@ Important Notes
     wireshark on the loopback interface.
 
 Adding Your Own Test Cases
-++++++++++++++++++++++++++
+==========================
 
     You can:
 
@@ -200,18 +196,13 @@ Adding Your Own Test Cases
     characters.
 
 Other Info
-++++++++++
+==========
 
     * Build doc with
-      + cd (flowvisor-test directory)/tools/munger
-      + make doc
+      $ cd (flowvisor-test directory)/tools/munger
+      $ make doc
     Places the results in (flowvisor-test directory)/doc/html
     If you have problems, check the install location doxypy.py and
     that it is set correctly in functiontest/doc/Doxyfile
 
 
-To Do
-+++++
-
-
-+++++
