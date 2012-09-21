@@ -1,0 +1,179 @@
+{
+    "flowvisor": [
+        {
+            "api_webserver_port": 18080,
+            "checkpointing": false,
+            "listen_port": 16633
+        }
+    ],
+    "Slice": [
+        {
+            "passwd_salt": "853082359",
+            "config_name": "default",
+            "contact_email": "controller1@foo.com",
+            "name": "controller1",
+            "controller_port": 54322,
+            "controller_hostname": "localhost",
+            "flowmap_type": "federated",
+            "passwd_crypt": "0c643486855336664467933b8a6395c5",
+            "creator": "fvadmin"
+        },
+        {
+            "passwd_salt": "485515894",
+            "config_name": "default",
+            "contact_email": "fvadmin@localhost",
+            "name": "fvadmin",
+            "controller_port": 0,
+            "controller_hostname": "none",
+            "flowmap_type": "federated",
+            "passwd_crypt": "ecdcc02afd9239dec5bb230d914e46b8",
+            "creator": "fvadmin"
+        },
+        {
+            "passwd_salt": "14415124",
+            "config_name": "default",
+            "contact_email": "controller0@foo.com",
+            "name": "controller0",
+            "controller_port": 54321,
+            "controller_hostname": "localhost",
+            "flowmap_type": "federated",
+            "passwd_crypt": "057432050a34e81e79bd842fec77dcad",
+            "creator": "fvadmin"
+        }
+    ],
+    "Switches" : [
+            { "default" : "fvadmin" }
+    ],
+    "FlowSpaceRule": [
+        {
+            "rule_id": 1000,
+            "wildcards": 4194298,
+            "priority": 32000,
+            "in_port": 0,
+            "dl_src": "00:00:00:00:00:02",
+            "dpid": "-8000000000000000",
+            "slice_action": [
+                {
+                    "controller0": 4
+                }
+            ]
+        },
+        {
+            "rule_id": 1001,
+            "wildcards": 4194298,
+            "priority": 32000,
+            "in_port": 0,
+            "dl_src": "00:01:00:00:00:02",
+            "dpid": "-8000000000000000",
+            "slice_action": [
+                {
+                    "controller0": 4
+                }
+            ]
+        },
+        {
+            "rule_id": 1002,
+            "wildcards": 4194298,
+            "priority": 32000,
+            "in_port": 2,
+            "dl_src": "00:00:00:00:00:02",
+            "dpid": "-8000000000000000",
+            "slice_action": [
+                {
+                    "controller0": 4
+                }
+            ]
+        },
+        {
+            "rule_id": 1003,
+            "wildcards": 4194298,
+            "priority": 32000,
+            "in_port": 2,
+            "dl_src": "00:01:00:00:00:02",
+            "dpid": "-8000000000000000",
+            "slice_action": [
+                {
+                    "controller0": 4
+                }
+            ]
+        },
+        {
+            "rule_id": 1004,
+            "wildcards": 4194298,
+            "priority": 32000,
+            "in_port": 3,
+            "dl_src": "00:00:00:00:00:02",
+            "dpid": "-8000000000000000",
+            "slice_action": [
+                {
+                    "controller0": 4
+                }
+            ]
+        },
+        {
+            "rule_id": 1005,
+            "wildcards": 4194298,
+            "priority": 32000,
+            "in_port": 3,
+            "dl_src": "00:01:00:00:00:02",
+            "dpid": "-8000000000000000",
+            "slice_action": [
+                {
+                    "controller0": 4
+                }
+            ]
+        },
+        {
+            "rule_id": 1006,
+            "wildcards": 4194298,
+            "priority": 32000,
+            "in_port": 1,
+            "dl_src": "00:00:00:00:00:01",
+            "dpid": "-8000000000000000",
+            "slice_action": [
+                {
+                    "controller1": 4
+                }
+            ]
+        },
+        {
+            "rule_id": 1007,
+            "wildcards": 4194298,
+            "priority": 32000,
+            "in_port": 1,
+            "dl_src": "00:01:00:00:00:01",
+            "dpid": "-8000000000000000",
+            "slice_action": [
+                {
+                    "controller1": 4
+                }
+            ]
+        },
+        {
+            "rule_id": 1008,
+            "wildcards": 4194298,
+            "priority": 32000,
+            "in_port": 3,
+            "dl_src": "00:00:00:00:00:01",
+            "dpid": "-8000000000000000",
+            "slice_action": [
+                {
+                    "controller1": 4
+                }
+            ]
+        },
+        {
+            "rule_id": 1009,
+            "wildcards": 4194298,
+            "priority": 32000,
+            "in_port": 3,
+            "dl_src": "00:01:00:00:00:01",
+            "dpid": "-8000000000000000",
+            "slice_action": [
+                {
+                    "controller1": 4
+                }
+            ]
+        }
+    ]
+}
