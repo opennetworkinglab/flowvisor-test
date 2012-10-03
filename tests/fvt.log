@@ -978,3 +978,6 @@
 15:12:11  root      : INFO    : *** TEST RUN END  : Mon Aug 27 15:12:11 2012
 15:13:39  api       : ERROR   : SetRule: Failed: <Fault 0: 'Failed to invoke method createSlice in class org.flowvisor.api.FVUserAPIXMLRPCImpl: Cannot create slice with existing name.'>
 15:35:41  api       : ERROR   : SetRule: Failed: <Fault 0: 'Failed to invoke method createSlice in class org.flowvisor.api.FVUserAPIXMLRPCImpl: Cannot create slice with existing name.'>
+18:58:44  flowlimit : ERROR   : SetRule: Failed: [Errno 111] Connection refused
+18:58:44  flowlimit : ERROR   : SetUpTestEnv: ListSlices: Could not get response
+18:58:44  template  : ERROR   : Could not communicate with API server
