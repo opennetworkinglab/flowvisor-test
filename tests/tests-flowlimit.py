@@ -347,7 +347,7 @@ class ErrorLimit(SliceLimit):
 
     def runTest(self):
 
-        max = 5
+        max = "5"
         
         fm1 = _genFlowModArp(self, out_ports = [0])
         
@@ -358,11 +358,11 @@ class ErrorLimit(SliceLimit):
 
         snd_list = ["controller", 0, 0, fm1]
         exp_list = [["switch", 0, fm1]]
-        res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
+        (res, ret_xid) = testutils.ofmsgSndCmpWithXid(self, snd_list, exp_list, xid_ignore=True)
         self.assertTrue(res, "%s: FlowMod1: Received unexpected message" %(self.__class__.__name__))
 
 
-        rule = ["getMaximumFlowMods", "controller0", "00:00:00:00:00:00:00:00"]
+        rule = ["getCurrentFlowMods", "controller0", "00:00:00:00:00:00:00:00"]
         (success, num) = testutils.setRule(self, self.sv, rule)
         self.assertEqual(num, 1, "%s: Current installed flowmod count incorrect %s != %s " %(self.__class__.__name__, num, 1))         
 
@@ -375,7 +375,7 @@ class ErrorLimit(SliceLimit):
         res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
         self.assertTrue(res, "%s: FlowModErr: Received unexpected message" %(self.__class__.__name__))
 
-        rule = ["getMaximumFlowMods", "controller0", "00:00:00:00:00:00:00:00"]
+        rule = ["getCurrentFlowMods", "controller0", "00:00:00:00:00:00:00:00"]
         (success, num) = testutils.setRule(self, self.sv, rule)
         self.assertEqual(num, 0, "%s: Current installed flowmod count incorrect %s != %s " %(self.__class__.__name__, num, 0))  
 
