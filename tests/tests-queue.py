@@ -47,7 +47,7 @@ def test_set_init(config):
 
 
 def _genFlowModEnqueue(parent, wildcards=0x3ffffa, dl_src = testutils.SRC_MAC_FOR_CTL0_0, \
-                    dl_dst = "00:00:00:00:00:00", queue_id = 1, outport = 0):
+                    dl_dst = "00:00:00:00:00:00", queue_id = 1, outport = 0, is_queue=True):
 
     pkt = testutils.simplePacket(dl_src=dl_src, dl_dst=dl_dst, dl_type=0, dl_vlan=0, tp_src=0,tp_dst=0)
 
@@ -55,7 +55,15 @@ def _genFlowModEnqueue(parent, wildcards=0x3ffffa, dl_src = testutils.SRC_MAC_FO
     enqueue.queue_id = queue_id
     enqueue.port = outport
 
-    flow_mod = testutils.genFloModFromPkt(parent, pkt, ing_port=0, action_list=[enqueue])
+    output = action.action_output()
+    output.port = outport
+
+    if is_queue:
+        action_list = [enqueue]
+    else:
+        action_list = [output]
+
+    flow_mod = testutils.genFloModFromPkt(parent, pkt, ing_port=0, action_list=action_list)
     flow_mod.match.wildcards = wildcards 
 
     return flow_mod
@@ -95,19 +103,12 @@ class EnqueueNoQueue(templatetest.TemplateTest):
 
 
 
-class EnqueueQueue(templatetest.TemplateTest):
-
-    def setUp(self):
-        templatetest.TemplateTest.setUp(self)
-        self.logger = basic_logger
-        (self.fv, self.sv, sv_ret, ctl_ret, sw_ret) = testutils.setUpTestEnv(self, fv_cmd=basic_fv_cmd, \
-            num_of_switches=2, num_of_controllers=2)
-        self.chkSetUpCondition(self.fv, sv_ret, ctl_ret, sw_ret)
+class EnqueueQueue(EnqueueNoQueue):
 
  
     """
     Enqueue Action
-    Check is enqueue action is rejected if the queue_id is not
+    Check is enqueue action is passed if the queue_id is
     in the slice.
     """
     def runTest(self):
@@ -121,6 +122,44 @@ class EnqueueQueue(templatetest.TemplateTest):
         
         snd_list = ["controller", 0, 0, flowmod]
         exp_list = [ ["switch", 0, flowmod] ]
+        res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
+        self.assertTrue(res, "%s : FlowModEnqueue: Received unexepected message" % (self.__class__.__name__))
+
+
+
+class EnqueueForce(EnqueueNoQueue):
+
+ 
+    """
+    Enqueue Action
+    Check is enqueue action is rejected if the queue_id is not
+    in the slice.
+    """
+    def runTest(self):
+
+
+        rule = ["changeFlowSpace", "ADD", "31000", "all", "in_port=0,dl_src=00:00:00:00:00:03,queues=1,force_enqueue=1", "Slice:controller0=4"]
+        (success, data) = testutils.setRule(self, self.sv, rule)
+        self.assertTrue(success, "%s: Not success" %(self.__class__.__name__)) 
+
+        flowmod_enqueue_action = _genFlowModEnqueue(self, dl_src="00:00:00:00:00:03")
+        flowmod_output_action = _genFlowModEnqueue(self, dl_src="00:00:00:00:00:03", is_queue=False)
+        
+        snd_list = ["controller", 0, 0, flowmod_output_action]
+        exp_list = [ ["switch", 0, flowmod_enqueue_action] ]
+        res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
+        self.assertTrue(res, "%s : FlowModEnqueue: Received unexepected message" % (self.__class__.__name__))
+
+
+        rule = ["changeFlowSpace", "ADD", "31000", "all", "in_port=0,dl_src=00:00:00:00:00:04,queues=1:2:3,force_enqueue=1", "Slice:controller0=4"]
+        (success, data) = testutils.setRule(self, self.sv, rule)
+        self.assertTrue(success, "%s: Not success" %(self.__class__.__name__)) 
+
+        flowmod_enqueue_action = _genFlowModEnqueue(self, dl_src="00:00:00:00:00:04")
+        flowmod_output_action = _genFlowModEnqueue(self, dl_src="00:00:00:00:00:04", is_queue=False)
+        
+        snd_list = ["controller", 0, 0, flowmod_output_action]
+        exp_list = [ ["switch", 0, flowmod_enqueue_action] ]
         res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
         self.assertTrue(res, "%s : FlowModEnqueue: Received unexepected message" % (self.__class__.__name__))
 
