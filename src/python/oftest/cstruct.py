@@ -2365,7 +2365,7 @@ class ofp_packet_queue:
             if(not self.__assert()[0]):
                 return None
         packed = ""
-        packed += struct.pack("!LH", self.queue_id, self.len)
+        packed += struct.pack("!LH", self.queue_id, self.__len__())
         packed += struct.pack("!BB", self.pad[0], self.pad[1])
         return packed
 
@@ -2537,7 +2537,7 @@ class ofp_queue_prop_header:
             if(not self.__assert()[0]):
                 return None
         packed = ""
-        packed += struct.pack("!HH", self.property, self.len)
+        packed += struct.pack("!HH", self.property, self.__len__())
         packed += struct.pack("!BBBB", self.pad[0], self.pad[1], self.pad[2], self.pad[3])
         return packed
 

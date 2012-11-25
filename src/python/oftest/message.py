@@ -2028,6 +2028,87 @@ class queue_get_config_request(ofp_queue_get_config_request):
         """
         return not self.__eq__(other)
     
+class packet_queue(ofp_packet_queue):
+    """
+    Wrapper class for packet_queue
+
+    Data members inherited from ofp_queue_packet_queue:
+    @arg properties
+
+    """
+
+    def __init__(self):
+        ofp_packet_queue.__init__(self)
+        self.properties = []
+
+    def pack(self):
+        packed = ""
+        packed += ofp_packet_queue.pack(self)
+        for obj in self.properties:
+            packed += obj.pack()
+        return packed
+
+    def unpack(self, binary_string):
+
+        binary_string = ofp_packet_queue.unpack(self, binary_string)
+        for obj in self.properties:
+            binary_string = obj.unpack(binary_string)
+        # Fixme: If no self.data, add check for data remaining
+        return binary_string
+
+    def __len__(self):
+        """
+        Return the length of this object once packed into a string
+
+        @return An integer representing the number bytes in the packed
+        string.
+
+        """
+        self.len = 0
+
+        self.len += ofp_packet_queue.__len__(self)
+        for obj in self.properties:
+            self.len += len(obj)
+        return self.len
+
+    def show(self, prefix=''):
+        """
+        Generate a string (with multiple lines) describing the contents
+        of the object in a readable manner
+
+        @param prefix Pre-pended at the beginning of each line.
+
+        """
+
+        outstr = prefix + 'packet_queue (OFP_PACKET_QUEUE)\n'
+        prefix += '  '
+        outstr += ofp_packet_queue.show(self, prefix)
+        for obj in self.properties:
+            outstr += obj.show(self, prefix + '  ')
+        return outstr
+
+    def __eq__(self, other):
+        """
+        Return True if self and other hold the same data
+
+        @param other Other object in comparison
+
+        """
+        if type(self) != type(other): return False
+
+        if not ofp_packet_queue.__eq__(self, other): return False
+        return True
+
+    def __ne__(self, other):
+        """
+        Return True if self and other do not hold the same data
+
+        @param other Other object in comparison
+
+        """
+        return not self.__eq__(other)
+    
+
 
 class set_config(ofp_switch_config):
     """
