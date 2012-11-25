@@ -132,8 +132,9 @@ class EnqueueForce(EnqueueNoQueue):
  
     """
     Enqueue Action
-    Check is enqueue action is rejected if the queue_id is not
-    in the slice.
+    If the flowspace entries forces a queue
+    then check that the output action is replaced
+    by the enqueue action.
     """
     def runTest(self):
 
@@ -162,4 +163,71 @@ class EnqueueForce(EnqueueNoQueue):
         exp_list = [ ["switch", 0, flowmod_enqueue_action] ]
         res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
         self.assertTrue(res, "%s : FlowModEnqueue: Received unexepected message" % (self.__class__.__name__))
+
+
+class QueueConfig(EnqueueNoQueue):
+    """
+    Push QueueConfigRequest, if for a port that is not
+    in the slice verify we get an error. If for a port
+    that is in the slice check we get a reply appropriately
+    pruned by the queues defined in the slice
+    """
+    
+    def runTest(self):
+        rule = ["changeFlowSpace", "ADD", "31000", "all", "in_port=0,dl_src=00:00:00:00:00:03,queues=1,force_enqueue=1", "Slice:controller0=4"]
+        (success, data) = testutils.setRule(self, self.sv, rule)
+        self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
+
+        qconfreq = message.queue_get_config_request()
+        qconfreq.port = 1
+
+        err = error.bad_request_error_msg()
+        err.xid = 0
+        err.code = ofp.OFPBRC_EPERM        
+        err.data = qconfreq.pack()
+
+        snd_list = ["controller", 0, 0, qconfreq]
+        exp_list = [ ["controller", 0, err] ]
+        res = testutils.ofmsgSndCmp(self, snd_list, exp_list, hdr_only=True)
+        self.assertTrue(res, "%s : QueueConfigRequestBadPort: Received unexepected message" % (self.__class__.__name__))
+
+        qconfreq.port = 0
+        snd_list = ["controller", 0, 0, qconfreq]
+        exp_list = [ ["switch", 0, qconfreq] ]
+        (res, ret_xid) = testutils.ofmsgSndCmpWithXid(self, snd_list, exp_list, xid_ignore=True)
+        self.assertTrue(res, "%s : QueueConfigGoodPort: Received unexepected message" % (self.__class__.__name__))
+
+
+        qconfrep = message.queue_get_config_reply()
+        qconfrep.header.xid = ret_xid
+        qconfrep.port = 0
+        q1 = message.packet_queue()
+        q1.queue_id = 0
+        
+        
+        prop = ofp.ofp_queue_prop_header()
+        q1.properties = [prop]
+
+        qconfrep.queues = [q1] 
+
+        snd_list = ["switch", 0, qconfrep]
+        exp_list = [ ["controller", 0, None] ]
+        res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
+        self.assertTrue(res, "%s : QueueConfigReply1: Received unexepected message" % (self.__class__.__name__))
+        
+        q2 = ofp.ofp_packet_queue()
+        q2.queue_id = 1
+        qconfrep.queues = [q1, q2]
+        q2.properties = [prop]
+#
+        prunedqconf = message.queue_get_config_reply()
+        prunedqconf.header.xid = ret_xid
+        prunedqconf.port = 0
+        prunedqconf.queues = [q2] 
+
+        snd_list = ["switch", 0, qconfrep]
+        exp_list = [ ["controller", 0, prunedqconf] ]
+        res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
+        self.assertTrue(res, "%s : QueueConfigReply2 Received unexepected message" % (self.__class__.__name__))
+         
 
