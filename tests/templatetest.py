@@ -61,7 +61,7 @@ class TemplateTest(unittest.TestCase):
         testutils.tearDownFakeDevices(self)
         #Tear down FlowVisor if there is
         if self.fv:
-            testutils.tearDownFlowVisor(self)
+            testutils.tearDownFlowVisor(self, self.fv)
         else:
             basic_logger.info("FlowVisor is already gone")
 

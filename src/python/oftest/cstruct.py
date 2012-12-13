@@ -300,7 +300,7 @@ class ofp_table_stats:
         return outstr
 
 
-class ofp_flow_removed:
+class ofp_flow_removed(object):
     """Automatically generated Python class for ofp_flow_removed
 
     Date 2012-02-25
@@ -323,6 +323,7 @@ class ofp_flow_removed:
         self.pad2= [0,0]
         self.packet_count = 0
         self.byte_count = 0
+	self.ignore_cookie = True
 
     def __assert(self):
         """Sanity check
@@ -382,7 +383,8 @@ class ofp_flow_removed:
         """
         if type(self) != type(other): return False
         if self.match !=  other.match: return False
-        if self.cookie !=  other.cookie: return False
+	if not self.ignore_cookie:
+        	if self.cookie !=  other.cookie: return False
         if self.priority !=  other.priority: return False
         if self.reason !=  other.reason: return False
         if self.pad !=  other.pad: return False
@@ -3367,7 +3369,7 @@ class ofp_action_vlan_pcp:
         return outstr
 
 
-class ofp_flow_mod:
+class ofp_flow_mod(object):
     """Automatically generated Python class for ofp_flow_mod
 
     Date 2012-02-25
@@ -3388,6 +3390,7 @@ class ofp_flow_mod:
         self.buffer_id = 0
         self.out_port = 0
         self.flags = 0
+	self.ignore_cookie=True
 
     def __assert(self):
         """Sanity check
@@ -3433,7 +3436,8 @@ class ofp_flow_mod:
         """
         if type(self) != type(other): return False
         if self.match !=  other.match: return False
-        if self.cookie !=  other.cookie: return False
+	if not self.ignore_cookie:
+        	if self.cookie !=  other.cookie: return False
         if self.command !=  other.command: return False
         if self.idle_timeout !=  other.idle_timeout: return False
         if self.hard_timeout !=  other.hard_timeout: return False

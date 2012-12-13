@@ -58,62 +58,22 @@ def _genFlowModFlushAll(parent, wildcards=0x3fffff, in_port=0, dl_src="00:00:00:
     return flow_mod_flush
 
 
-class TableStats(templatetest.TemplateTest):
+class EchoPayload(templatetest.TemplateTest):
     """
-    Table_stats request and reply
-    Check if table_stats_request goes to switch through FlowVisor
-    Check if table_stats_reply goes to controller through FlowVisor
+    Echo_request with Payload
+    Check if FlowVisor pass the echo_request with payload
     """
     def setUp(self):
         templatetest.TemplateTest.setUp(self)
         self.logger = basic_logger
         # Set up the test environment
-        # -- Note: default setting: config_file = test-base.xml, num of SW = 2, num of CTL = 2
-        (self.fv, self.sv, sv_ret, ctl_ret, sw_ret) = testutils.setUpTestEnv(self, fv_cmd=basic_fv_cmd, num_of_switches=2)
+        # -- Note: default setting: config_file = test-base.xml, num of SW = 1, num of CTL = 2
+        (self.fv, self.sv, sv_ret, ctl_ret, sw_ret) = testutils.setUpTestEnv(self, fv_cmd=basic_fv_cmd)
         self.chkSetUpCondition(self.fv, sv_ret, ctl_ret, sw_ret)
 
-    def runTest(self):
-        # Table_stats_request
-        # Expect to receive same message on ctrl
-        msg = message.table_stats_request()
-
-        snd_list = ["controller", 0, 0, msg]
-        exp_list = [["switch", 0, msg]]
-        (res, ret_xid) = testutils.ofmsgSndCmpWithXid(self, snd_list, exp_list, xid_ignore=True)
-        self.assertTrue(res, "%s: Req: Received unexpected message" %(self.__class__.__name__))
-
-        # Table_stats_reply
-        # Prepare table_stats information
-        # Assume switch has two tables
-        table0 = ofp.ofp_table_stats()
-        table0.table_id = 0
-        table0.name = "fvtest table0 exact"
-        table0.wildcards = 0
-        table0.max_entries = 0x100
-
-        table1 = ofp.ofp_table_stats()
-        table1.table_id = 1
-        table1.name = "fvtest table1 wildcard"
-        table1.wildcards = 0x3fffff
-        table0.max_entries = 0x255
-
-        stats = [table0, table1]
-
-        msg = message.table_stats_reply()
-        msg.header.xid = ret_xid
-        msg.stats = stats
-
-        snd_list = ["switch", 0, msg]
-        exp_list = [["controller", 0, msg]]
-        res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
-        self.assertTrue(res, "%s: Rep: Received unexpected message" %(self.__class__.__name__))
 
 
-class EchoPayload(TableStats):
-    """
-    Echo_request with Payload
-    Check if FlowVisor pass the echo_request with payload
-    """
+
     def runTest(self):
         msg = message.echo_request()
         msg.data = "FlowVisor Testing"
@@ -126,7 +86,7 @@ class EchoPayload(TableStats):
         self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
 
 
-class FeatReqErr(TableStats):
+class FeatReqErr(EchoPayload):
     """
     Features_request and its error_reply
     First, make up a features_request and exchange error message
@@ -151,7 +111,7 @@ class FeatReqErr(TableStats):
         self.assertTrue(res, "%s: BadReqErr: Received unexpected message" %(self.__class__.__name__))
 
 
-class FlowModFail(TableStats):
+class FlowModFail(EchoPayload):
     """
     Flow_mod to erase all and its error_reply
     Send a 'flow_mod erase all' and FlowVisor expands it so that
@@ -196,7 +156,7 @@ class FlowModFail(TableStats):
         self.assertTrue(res, "%s: FlowModErr: Received unexpected message" %(self.__class__.__name__))
 
 
-class OldOFVer(TableStats):
+class OldOFVer(EchoPayload):
     """
     Echo_request with old OpenFlow version
     When controller sends echo_request with old OpenFlow version,
@@ -214,7 +174,7 @@ class OldOFVer(TableStats):
         self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
 
 
-class Pkt2DelSlice(TableStats):
+class Pkt2DelSlice(EchoPayload):
     """
     Packet_in to dynamically deleted slice
     After deleting a slice, make sure the controller cannot

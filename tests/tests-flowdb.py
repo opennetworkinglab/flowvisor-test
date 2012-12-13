@@ -169,9 +169,13 @@ class TrackOn(TrackOff):
 
         # Make one of the flows expire
         flow_rm1 = _genFlowRemovedFromFlowMod(flow_mod1)
+	flow_rm1.cookie = 256
+	flow_rm2 = _genFlowRemovedFromFlowMod(flow_mod1) 
+	flow_rm2.cookie = 0
+
 
         snd_list = ["switch", 0, flow_rm1]
-        exp_list = [["controller", 0, flow_rm1]]
+        exp_list = [["controller", 0, flow_rm2]]
         res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
         self.assertTrue(res, "%s: FlowRemoved: Received unexpected message" %(self.__class__.__name__))
 

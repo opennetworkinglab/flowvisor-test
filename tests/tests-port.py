@@ -44,11 +44,12 @@ def test_set_init(config):
 
 # ------ End: Mandatory portion on each test case file ------
 
-class PortStats(templatetest.TemplateTest):
+
+class PktOutInport(templatetest.TemplateTest):
     """
-    Port_stats_request
-    Check if switch gets the same port_stats message as controller has
-    issued
+    Packet_out to flood port with ingress port mentioned
+    Check if FlowVisor expands the message so that it can exclude ingress_port
+    from the message when it sends it to switch
     """
     def setUp(self):
         templatetest.TemplateTest.setUp(self)
@@ -64,30 +65,8 @@ class PortStats(templatetest.TemplateTest):
         (self.fv, self.sv, sv_ret, ctl_ret, sw_ret) = testutils.setUpTestEnv(self, fv_cmd=basic_fv_cmd, rules=rules)
         self.chkSetUpCondition(self.fv, sv_ret, ctl_ret, sw_ret)
 
-    def runTest(self):
-        msg = message.port_stats_request()
-        msg.header.xid = testutils.genVal32bit()
-        msg.port_no = ofp.OFPP_NONE
-
-        # Ctl0
-        snd_list = ["controller", 0, 0, msg]
-        exp_list = [["switch", 0, msg]]
-        res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
-        self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
-
-        # Ctl1
-        snd_list = ["controller", 1, 0, msg]
-        exp_list = [["switch", 0, msg]]
-        res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
-        self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
 
 
-class PktOutInport(PortStats):
-    """
-    Packet_out to flood port with ingress port mentioned
-    Check if FlowVisor expands the message so that it can exclude ingress_port
-    from the message when it sends it to switch
-    """
     def runTest(self):
         ports_ctl = [ofp.OFPP_FLOOD]
         pkt_ctl = testutils.simplePacket(dl_src="00:11:22:33:44:55")
@@ -102,7 +81,7 @@ class PktOutInport(PortStats):
         self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
 
 
-class AddPort(PortStats):
+class AddPort(PktOutInport):
     """
     Port_status with adding a port
     When switch sends port_status with 'add port',
@@ -150,7 +129,7 @@ class AddPort(PortStats):
         self.assertTrue(res, "%s: PacketOut: Received unexpected message" %(self.__class__.__name__))
 
 
-class RmPortApi(PortStats):
+class RmPortApi(PktOutInport):
     """
     ChangeFlowSpace with Remove via API
     Remove a port from flow space using API

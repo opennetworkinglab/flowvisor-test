@@ -223,37 +223,6 @@ class PaktOutError(PktInPerPort):
         self.assertTrue(res, "%s: Echo: Received unexpected message" %(self.__class__.__name__))
 
 
-class DescStats(PktInPerPort):
-    """
-    Desc_stats_request and desc_stats_reply
-    Check if desc_stats_request goes from controller to switch, and
-    check desc_Stats_reply comes back from switch to controller
-    """
-    def runTest(self):
-        # Desc stats request
-        msg = message.desc_stats_request()
-
-        snd_list = ["controller", 0, 0, msg]
-        exp_list = [["switch", 0, msg]]
-        (res, ret_xid) = testutils.ofmsgSndCmpWithXid(self, snd_list, exp_list, xid_ignore=True)
-        self.assertTrue(res, "%s: Req: Received unexpected message" %(self.__class__.__name__))
-
-        #Desc stats reply
-        desc = ofp.ofp_desc_stats()
-        desc.mfr_desc= "ONL"
-        desc.hw_desc= "Fake Switch for Flowvisor Testing"
-        desc.sw_desc= "Test software"
-        desc.serial_num= "01234567"
-        desc.dp_desc= "No datapath on this switch"
-        msg = message.desc_stats_reply()
-        msg.header.xid = ret_xid
-        msg.stats.append(desc)
-
-        snd_list = ["switch", 0, msg]
-        exp_list = [["controller", 0, msg]]
-        res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
-        self.assertTrue(res, "%s: Rep: Received unexpected message" %(self.__class__.__name__))
-
 
 class PktOutFlood(PktInPerPort):
     """

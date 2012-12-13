@@ -91,7 +91,7 @@ def spawnFlowVisor(parent, config_file=CONFIG_FILE, fv_cmd="flowvisor", fv_args=
     return fv
 
 
-def tearDownFlowVisor(parent):
+def tearDownFlowVisor(parent, fv=None):
     """
     Kill FlowVisor process
     @param parent parent must have FlowVisor object
@@ -106,7 +106,12 @@ def tearDownFlowVisor(parent):
     os.kill(parent.fv.pid,signal.SIGTERM)
     parent.logger.info(logprefix + "Sleeping for a second to let things die")
     time.sleep(1)
-    parent.logger.info(logprefix + "Done cleaning up")
+    parent.logger.info(logprefix + "Done cleaning up")  
+    if (fv != None):
+	f = open('fv-error.out', 'w')
+    	output = fv.stdout.read()
+	f.write(output)
+    	f.close()
     return True
 
 
@@ -660,16 +665,16 @@ def recvStats(parent, swId, typ):
         return (-1,False)
     
 
-def ofmsgSndCmp(parent, snd_list, exp_list, xid_ignore=False, hdr_only=False):
+def ofmsgSndCmp(parent, snd_list, exp_list, xid_ignore=False, hdr_only=False, ignore_cookie=True, cookies=[]):
     """
     Wrapper method for comparing received message and expected message
     See ofmsgSndCmpWithXid()
     """
-    (success, ret_xid) = ofmsgSndCmpWithXid(parent, snd_list, exp_list, xid_ignore, hdr_only)
+    (success, ret_xid) = ofmsgSndCmpWithXid(parent, snd_list, exp_list, xid_ignore, hdr_only, ignore_cookie, cookies)
     return success
 
 
-def ofmsgSndCmpWithXid(parent, snd_list, exp_list, xid_ignore=False, hdr_only=False):
+def ofmsgSndCmpWithXid(parent, snd_list, exp_list, xid_ignore=False, hdr_only=False, ignore_cookie=True, cookies=[]):
     """
     Extract snd_list (list) and exp_list (list of list).
     With snd_list, send a message from the specific switch/controller ports.
@@ -703,14 +708,18 @@ def ofmsgSndCmpWithXid(parent, snd_list, exp_list, xid_ignore=False, hdr_only=Fa
     ret_xid = 0
 
     if snd_sw_ctrl == "switch":
-        snd_msg = snd_list[2].pack()
+        if snd_list[2] is not None:
+            snd_msg = snd_list[2].pack()
+        else:
+            snd_msg = None
         try:
             sw = parent.switches[snd_num]
         except (KeyError):
             parent.logger.error(logprefix + "Unknown switch " + str(snd_num))
             return (False, ret_xid)
         parent.logger.info(logprefix + "Sending message from " + sw.name)
-        sw.send(snd_msg)
+        if snd_msg is not None:
+            sw.send(snd_msg)
     elif snd_sw_ctrl == "controller":
         sw_num = snd_list[2]
         snd_msg = snd_list[3].pack()
@@ -757,7 +766,17 @@ def ofmsgSndCmpWithXid(parent, snd_list, exp_list, xid_ignore=False, hdr_only=Fa
                         parent.logger.error(logprefix + sw.name + ": Received unexpected message")
                         return (False, ret_xid)
                 else:
-                    if response != exp_msg:
+                    if ignore_cookie:
+		    	resp = parse.of_message_parse(response)
+			exp_m = parse.of_message_parse(exp_msg)
+			if (isinstance(resp,message.flow_mod) 
+				or isinstance(resp, message.flow_removed)):
+				resp.ignore_cookie = True
+				cookies.append(resp.cookie)
+		    else:
+			resp = response
+			exp_m = exp_msg
+		    if resp != exp_m:
                         parent.logger.error(logprefix + "Raw Expecting: " + _b2a(exp_msg))
                         parent.logger.error(logprefix + "Raw Response:  " + _b2a(response))
                         parent.logger.error(logprefix + "Parsed Expecting: " + _pktParse(exp_msg))
