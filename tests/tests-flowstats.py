@@ -46,6 +46,11 @@ def test_set_init(config):
 
 # ------ End: Mandatory portion on each test case file ------
 
+PACKET_COUNT=10
+DURATION_SEC=100
+DURATION_NSEC=10000000
+BYTE_COUNT=640
+
 def _genFlowModArp(parent, wildcards=0x3ffffa, dl_src = testutils.SRC_MAC_FOR_CTL0_0, 
 		dl_dst="00:00:00:00:00:00", out_ports=[0], in_port=0):
     """
@@ -67,14 +72,39 @@ def _genFlowStatssEntry(table_id=1, match=None, cookie=0, actions=None):
     entry = message.flow_stats_entry()
     entry.table_id = table_id
     entry.match = match
-    entry.duration_sec = 100
-    entry.duration_nsec = 10000000
+    entry.duration_sec = DURATION_SEC
+    entry.duration_nsec = DURATION_NSEC
     entry.cookie = cookie
-    entry.packet_count = 10
-    entry.byte_count = 640
+    entry.packet_count = PACKET_COUNT
+    entry.byte_count = BYTE_COUNT
     if actions is not None:
         entry.actions = actions
     return entry
+
+
+def _genAllAggsStats():
+    match = ofp.ofp_match()
+    match.wildcards = ofp.OFPFW_ALL
+    match.dl_dst = parse.parse_mac("00:00:00:00:00:00")
+    match.dl_src = parse.parse_mac("00:00:00:00:00:00")
+    match.dl_type = 0
+    match.dl_vlan = 0
+    match.dl_vlan_pcp = 0
+    match.nw_src = parse.parse_ip("0.0.0.0")
+    match.nw_dst = parse.parse_ip("0.0.0.0")
+    match.nw_tos = 0
+    match.nw_proto = 0
+    match.tp_src = 0
+    match.tp_dst = 0
+
+    msg = message.aggregate_stats_request()
+    msg.header.xid = testutils.genVal32bit()
+    msg.match = match
+    msg.table_id = 0xff
+    msg.out_port = 0xffff
+    return msg
+
+
 
 
 def _genAllFlowsStats():
@@ -274,3 +304,187 @@ class FlowStatsSpecific(FlowStats):
         (res, ret_xid) = testutils.ofmsgSndCmpWithXid(self, snd_list, exp_list, xid_ignore = True)
         self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
 
+
+class AggStats(FlowStats):
+
+
+    def runTest(self):
+         # Matching field values below are from original regression test case
+        fm1 = _genFlowModArp(self,wildcards=0x3ffffa,dl_src="00:00:00:00:00:02",out_ports=[2])
+        fm2 = _genFlowModArp(self,wildcards=0x3ffffa,dl_src="00:01:00:00:00:02",out_ports=[2])
+        fm3 = _genFlowModArp(self,wildcards=0x3ffffa,dl_src="00:00:00:00:00:01",out_ports=[3], in_port=1) 
+        fm4 = _genFlowModArp(self,wildcards=0x3ffffa,dl_src="00:00:00:00:00:02",out_ports=[3])        
+	
+        cookie = []
+        snd_list = ["controller", 0, 0, fm1]
+        exp_list = [["switch", 0, fm1]]
+        res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True, cookies=cookie)
+        self.assertTrue(res, "%s: FlowMod_Expand: Received unexpected message" %(self.__class__.__name__))
+        cookie_fm1 = cookie[0]
+
+        cookie = []
+        snd_list = ["controller", 0, 0, fm2]
+        exp_list = [["switch", 0, fm2]]
+        res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True, cookies=cookie)
+        self.assertTrue(res, "%s: FlowMod_Expand: Received unexpected message" %(self.__class__.__name__))
+        cookie_fm2 = cookie[0]
+
+        cookie = []
+        snd_list = ["controller", 1, 0, fm3]
+        exp_list = [["switch", 0, fm3]]
+        res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True, cookies=cookie)
+        self.assertTrue(res, "%s: FlowMod_Expand: Received unexpected message" %(self.__class__.__name__))
+        cookie_fm3 = cookie[0]
+
+        cookie = []
+        snd_list = ["controller", 0, 0, fm4]
+        exp_list = [["switch", 0, fm4]]
+        res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True, cookies=cookie)
+        self.assertTrue(res, "%s: FlowMod_Expand: Received unexpected message" %(self.__class__.__name__))
+        cookie_fm4 = cookie[0]
+
+        snd_list = ["controller", 0, 0, _genAllAggsStats()]
+        exp_list = [["switch", 0, _genAllFlowsStats()]]
+        (res, ret_xid) = testutils.ofmsgSndCmpWithXid(self, snd_list, exp_list, xid_ignore = True)
+        self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
+
+
+        fsr = message.flow_stats_reply()
+        fsr.header.xid = ret_xid
+        entry1 = _genFlowStatssEntry(table_id=1, match=fm1.match, cookie=cookie_fm1, actions=fm1.actions)
+        entry2 = _genFlowStatssEntry(table_id=1, match=fm2.match, cookie=cookie_fm2, actions=fm2.actions)
+        entry3 = _genFlowStatssEntry(table_id=1, match=fm3.match, cookie=cookie_fm3, actions=fm3.actions)
+        entry4 = _genFlowStatssEntry(table_id=1, match=fm4.match, cookie=cookie_fm4, actions=fm4.actions)
+
+        entry11 = _genFlowStatssEntry(table_id=1, match=fm1.match, cookie=0, actions=fm1.actions)
+        entry44 = _genFlowStatssEntry(table_id=1, match=fm4.match, cookie=0, actions=fm4.actions)
+        fsr.stats = [entry1,entry2,entry3, entry4]
+
+        asr = message.aggregate_stats_reply()
+        asr.header.xid = ret_xid
+        entry = message.aggregate_stats_entry()
+        
+        entry.packet_count = 3 * PACKET_COUNT
+        entry.byte_count = 3 * BYTE_COUNT
+        entry.flow_count = 3
+
+        asr.stats = [entry]
+       
+        snd_list = ["switch", 0, fsr]
+        exp_list = [["controller", 0, asr]]
+        res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)  
+        self.assertTrue(res, "%s: flowstats: Received unexpected message" %(self.__class__.__name__))
+
+
+class AggStatsSpecific(AggStats):
+
+     def runTest(self):
+         # Matching field values below are from original regression test case
+        fm1 = _genFlowModArp(self,wildcards=0x3ffffa,dl_src="00:00:00:00:00:02",out_ports=[2])
+        fm2 = _genFlowModArp(self,wildcards=0x3ffffa,dl_src="00:01:00:00:00:02",out_ports=[2])
+        fm3 = _genFlowModArp(self,wildcards=0x3ffffa,dl_src="00:00:00:00:00:01",out_ports=[3], in_port=1) 
+        fm4 = _genFlowModArp(self,wildcards=0x3ffffa,dl_src="00:00:00:00:00:02",out_ports=[3])        
+	
+        cookie = []
+        snd_list = ["controller", 0, 0, fm1]
+        exp_list = [["switch", 0, fm1]]
+        res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True, cookies=cookie)
+        self.assertTrue(res, "%s: FlowMod_Expand: Received unexpected message" %(self.__class__.__name__))
+        cookie_fm1 = cookie[0]
+
+        cookie = []
+        snd_list = ["controller", 0, 0, fm2]
+        exp_list = [["switch", 0, fm2]]
+        res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True, cookies=cookie)
+        self.assertTrue(res, "%s: FlowMod_Expand: Received unexpected message" %(self.__class__.__name__))
+        cookie_fm2 = cookie[0]
+
+        cookie = []
+        snd_list = ["controller", 1, 0, fm3]
+        exp_list = [["switch", 0, fm3]]
+        res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True, cookies=cookie)
+        self.assertTrue(res, "%s: FlowMod_Expand: Received unexpected message" %(self.__class__.__name__))
+        cookie_fm3 = cookie[0]
+
+        cookie = []
+        snd_list = ["controller", 0, 0, fm4]
+        exp_list = [["switch", 0, fm4]]
+        res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True, cookies=cookie)
+        self.assertTrue(res, "%s: FlowMod_Expand: Received unexpected message" %(self.__class__.__name__))
+        cookie_fm4 = cookie[0]
+
+
+
+        match = ofp.ofp_match()
+        match.wildcards = 4194298
+        match.in_port = 0
+        match.dl_dst = parse.parse_mac("00:00:00:00:00:00")
+        match.dl_src = parse.parse_mac("00:00:00:00:00:02")
+        match.dl_type = 0
+        match.dl_vlan = 0
+        match.dl_vlan_pcp = 0
+        match.nw_src = parse.parse_ip("0.0.0.0")
+        match.nw_dst = parse.parse_ip("0.0.0.0")
+        match.nw_tos = 0
+        match.nw_proto = 0
+        match.tp_src = 0
+        match.tp_dst = 0
+
+        msg = message.aggregate_stats_request()
+        msg.header.xid = testutils.genVal32bit()
+        msg.match = match
+        msg.table_id = 0xff
+        msg.out_port = 0xffff
+
+        snd_list = ["controller", 0, 0, msg]
+        exp_list = [["switch", 0, _genAllFlowsStats()]]
+        (res, ret_xid) = testutils.ofmsgSndCmpWithXid(self, snd_list, exp_list, xid_ignore = True)
+        self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
+
+	
+        fsr = message.flow_stats_reply()
+        fsr.header.xid = ret_xid
+        entry1 = _genFlowStatssEntry(table_id=1, match=fm1.match, cookie=cookie_fm1, actions=fm1.actions)
+        entry2 = _genFlowStatssEntry(table_id=1, match=fm2.match, cookie=cookie_fm2, actions=fm2.actions)
+        entry3 = _genFlowStatssEntry(table_id=1, match=fm3.match, cookie=cookie_fm3, actions=fm3.actions)
+        entry4 = _genFlowStatssEntry(table_id=1, match=fm4.match, cookie=cookie_fm4, actions=fm4.actions)
+
+
+
+        entry11 = _genFlowStatssEntry(table_id=1, match=fm1.match, cookie=0, actions=fm1.actions)
+        entry44 = _genFlowStatssEntry(table_id=1, match=fm4.match, cookie=0, actions=fm4.actions)
+        fsr.stats = [entry1,entry2,entry3, entry4]
+
+        asr = message.aggregate_stats_reply()
+        asr.header.xid = ret_xid
+        entry = message.aggregate_stats_entry()
+        
+        entry.packet_count = 2 * PACKET_COUNT
+        entry.byte_count = 2 * BYTE_COUNT
+        entry.flow_count = 2
+
+        asr.stats = [entry]
+       
+        snd_list = ["switch", 0, fsr]
+        exp_list = [["controller", 0, asr]]
+        res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)  
+        self.assertTrue(res, "%s: flowstats: Received unexpected message" %(self.__class__.__name__))
+
+        """
+        change flowstats request to match on outport: 3
+        """
+        msg.xid = testutils.genVal32bit()  
+        msg.out_port = 3
+        entry.packet_count = PACKET_COUNT
+        entry.byte_count = BYTE_COUNT
+        entry.flow_count = 1
+        asr.stats = [entry]
+
+
+        # should return straight to controller because we are rate limiting flowstats request.
+        snd_list = ["controller", 0, 0, msg]
+        exp_list = [["controller", 0, asr]]
+        (res, ret_xid) = testutils.ofmsgSndCmpWithXid(self, snd_list, exp_list, xid_ignore = True)
+        self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
+
+   
