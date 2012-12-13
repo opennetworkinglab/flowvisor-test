@@ -708,18 +708,14 @@ def ofmsgSndCmpWithXid(parent, snd_list, exp_list, xid_ignore=False, hdr_only=Fa
     ret_xid = 0
 
     if snd_sw_ctrl == "switch":
-        if snd_list[2] is not None:
-            snd_msg = snd_list[2].pack()
-        else:
-            snd_msg = None
+        snd_msg = snd_list[2].pack()
         try:
             sw = parent.switches[snd_num]
         except (KeyError):
             parent.logger.error(logprefix + "Unknown switch " + str(snd_num))
             return (False, ret_xid)
         parent.logger.info(logprefix + "Sending message from " + sw.name)
-        if snd_msg is not None:
-            sw.send(snd_msg)
+        sw.send(snd_msg)
     elif snd_sw_ctrl == "controller":
         sw_num = snd_list[2]
         snd_msg = snd_list[3].pack()

@@ -263,17 +263,14 @@ class FlowStatsSpecific(FlowStats):
         """
         change flowstats request to match on outport: 3
         """
-        msg.outport = 3
+        msg.xid = testutils.genVal32bit()  
+        msg.out_port = 3
+        fsr_cont.stats = [entry44]
 
 
-        # should be none because we are rate limiting flowstats request.
+        # should return straight to controller because we are rate limiting flowstats request.
         snd_list = ["controller", 0, 0, msg]
-        exp_list = [["switch", 0, None]]
+        exp_list = [["controller", 0, fsr_cont]]
         (res, ret_xid) = testutils.ofmsgSndCmpWithXid(self, snd_list, exp_list, xid_ignore = True)
         self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
 
-        fsr_cont.stats = [entry44]
-        snd_list = ["switch", 0, None]
-        exp_list = [["controller", 0, 0, fsr_cont]]
-        res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)  
-        self.assertTrue(res, "%s: flowstats: Received unexpected message" %(self.__class__.__name__))   
