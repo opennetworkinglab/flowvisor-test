@@ -154,3 +154,38 @@ class PktOutFlood(FeaturesReply):
         exp_list = [["switch", 0, pktout_ctl]]
         res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
         self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
+
+
+class PktOutNoFloodPort(FeaturesReply):
+    """
+    packet_out to flood port
+    but set one port in slice to NO_FLOOD
+    should expand to all ports except that one
+    """
+
+    def runTest(self):
+        port_mod = message.port_mod()
+        port_mod.port_no = 2
+        port_mod.config = ofp.OFPPC_NO_FLOOD
+        port_mod.mask = ofp.OFPPC_NO_FLOOD
+        port_mod.advertise = 0
+        
+        snd_list = ["controller", 0, 0, port_mod]
+        exp_list = [["switch", 0, None]]
+        res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
+        self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
+
+
+        ports_ctl = [ofp.OFPP_FLOOD]
+        pktout_ctl = testutils.genPacketOut(self, action_ports=ports_ctl)
+
+        ports_sw = [0, 3]
+        pktout_sw = testutils.genPacketOut(self, action_ports=ports_sw)
+
+        snd_list = ["controller", 0, 0, pktout_ctl]
+        exp_list = [["switch", 0, pktout_sw]]
+        res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
+        self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
+
+
+        
