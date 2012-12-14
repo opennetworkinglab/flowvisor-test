@@ -1,7 +1,6 @@
 """
 Stats tests
 """
-
 import sys
 import logging
 import templatetest
@@ -44,6 +43,30 @@ def test_set_init(config):
 
 # ------ End: Mandatory portion on each test case file ------
 
+def _genPortEntry(port_no = 0):
+    entry = message.port_stats_entry()
+    entry.port_no = port_no
+    entry.rx_packets = 0
+    entry.tx_packets = 0
+    entry.rx_bytes = 0
+    entry.tx_bytes = 0
+    entry.rx_dropped = 0
+    entry.tx_dropped = 0
+    entry.rx_errors = 0
+    entry.tx_errors = 0
+    entry.rx_frame_err = 0
+    entry.rx_over_err = 0
+    entry.rx_crc_err = 0
+    entry.collisions = 0
+    return entry
+
+def _genQueueEntry(port_no, queue_id):
+    entry = message.queue_stats_entry()
+    entry.port_no = port_no
+    entry.queue_id = queue_id
+    return entry
+
+
 class PortStats(templatetest.TemplateTest):
     """
     Port_stats_request
@@ -69,12 +92,78 @@ class PortStats(templatetest.TemplateTest):
         msg.header.xid = testutils.genVal32bit()
         msg.port_no = ofp.OFPP_NONE
 
-        # Ctl0
+        # Ctl0 -- access to all ports
         snd_list = ["controller", 0, 0, msg]
         exp_list = [["switch", 0, msg]]
+        (res, ret_xid) = testutils.ofmsgSndCmpWithXid(self, snd_list, exp_list, xid_ignore=True)
+        self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
+
+        reply = message.port_stats_reply()
+        reply.header.xid = ret_xid
+        reply.stats = [ _genPortEntry(), _genPortEntry(port_no = 1),
+                        _genPortEntry(port_no = 2), _genPortEntry(port_no = 4)]
+
+        snd_list = ["switch", 0, reply]
+        exp_list = [["controller", 0, reply]]
         res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
         self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
 
+        
+         # Ctl1 -- access to only [1,3]
+        snd_list = ["controller", 1, 0, msg]
+        exp_list = [["switch", 0, msg]]
+        (res, ret_xid) = testutils.ofmsgSndCmpWithXid(self, snd_list, exp_list, xid_ignore=True)
+        self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
+
+        reply = message.port_stats_reply()
+        reply.header.xid = ret_xid
+        reply.stats = [ _genPortEntry(), _genPortEntry(port_no = 1),
+                        _genPortEntry(port_no = 2), _genPortEntry(port_no = 3)]
+
+        replyc = message.port_stats_reply()
+        replyc.stats = [_genPortEntry(port_no = 1), _genPortEntry(port_no = 3)]
+
+        snd_list = ["switch", 0, reply]
+        exp_list = [["controller", 1, replyc]]
+        res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
+        self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
+
+
+class QueueStats(PortStats):
+
+    def runTest(self):
+        rule = ["changeFlowSpace", "ADD", "33000", "all", "in_port=2,dl_src=00:00:00:00:00:02,queues=1", "Slice:controller0=4"]
+        (success, data) = testutils.setRule(self, self.sv, rule)
+        self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
+    
+        msg = message.queue_stats_request()
+        msg.header.xid = testutils.genVal32bit()
+        msg.port_no = ofp.OFPP_ALL
+        msg.queue_id = ofp.OFPQ_ALL
+
+        # Ctl0 -- access to all ports
+        snd_list = ["controller", 0, 0, msg]
+        exp_list = [["switch", 0, msg]]
+        (res, ret_xid) = testutils.ofmsgSndCmpWithXid(self, snd_list, exp_list, xid_ignore=True)
+        self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
+
+        reply = message.queue_stats_reply()
+        reply.header.xid = ret_xid
+        reply.stats = [ _genQueueEntry(0,0), _genQueueEntry(0,1),
+                        _genQueueEntry(2,1), _genQueueEntry(4,2)]
+
+        replyc = message.queue_stats_reply()
+        replyc.stats = [ _genQueueEntry(2,1) ]
+
+
+
+        snd_list = ["switch", 0, reply]
+        exp_list = [["controller", 0, replyc]]
+        res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
+        self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
+
+
+    
 
 class DescStats(templatetest.TemplateTest):
     """
