@@ -4,7 +4,7 @@
             "api_webserver_port": 18080,
             "checkpointing": false,
             "listen_port": 16633,
-            "db_version": 1
+            "db_version": 2
         }
     ],
     "Slice": [

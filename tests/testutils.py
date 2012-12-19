@@ -392,18 +392,22 @@ def setRule(parent, sv, rule, num_try=1):
                 if not (_ruleLenChecker(parent, rule, exp_len=2)):
                     return (success, data)
                 sv.api.setFlowTracking(rule[1])
-	    elif rule[0] == "setMaximumFlowMods":
-		if not (_ruleLenChecker(parent, rule, exp_len=4)):
-		    return (success, data)
-		sv.api.setMaximumFlowMods(rule[1], rule[2], rule[3])
-	    elif rule[0] == "getMaximumFlowMods":
-		if not (_ruleLenChecker(parent, rule, exp_len=3)):
-		    return (success, data)
-		data = sv.api.getMaximumFlowMods(rule[1], rule[2])
-	    elif rule[0] == "getCurrentFlowMods":
-		if not (_ruleLenChecker(parent, rule, exp_len=3)):
-		    return (success, data)
-		data = sv.api.getCurrentFlowMods(rule[1], rule[2])
+            elif rule[0] == "setMaximumFlowMods":
+                if not (_ruleLenChecker(parent, rule, exp_len=4)):
+                    return (success, data)
+                sv.api.setMaximumFlowMods(rule[1], rule[2], rule[3])
+            elif rule[0] == "getMaximumFlowMods":
+                if not (_ruleLenChecker(parent, rule, exp_len=3)):
+                    return (success, data)
+                data = sv.api.getMaximumFlowMods(rule[1], rule[2])
+            elif rule[0] == "getCurrentFlowMods":
+                if not (_ruleLenChecker(parent, rule, exp_len=3)):
+                    return (success, data)
+                data = sv.api.getCurrentFlowMods(rule[1], rule[2])
+            elif rule[0] == "setRateLimit":
+                if not (_ruleLenChecker(parent, rule, exp_len=3)):
+                    return (success, data)
+                data = sv.api.setRateLimit(rule[1],rule[2])
             elif rule[0] == "registerCallback":
                 if not (_ruleLenChecker(parent, rule, exp_len=4)):
                     return (success, data)
