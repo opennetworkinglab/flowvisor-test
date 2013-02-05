@@ -813,7 +813,7 @@ def ofmsgSndCmpWithXid(parent, snd_list, exp_list, xid_ignore=False, hdr_only=Fa
                     if xid_ignore:
                         response = response[0:4] + exp_msg[4:8] + response[8:]
                 if hdr_only:
-                    if response[0:8] != exp_msg[0:8]:
+                    if response is not None and response[0:8] != exp_msg[0:8]:
                         parent.logger.error(logprefix + "Parsed Expecting: " + _hdrParse(exp_msg))
                         parent.logger.error(logprefix + "Parsed Response:  " + _hdrParse(response))
                         #@TODO Check some stats
