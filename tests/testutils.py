@@ -6,11 +6,12 @@ import os
 import time
 import signal
 import subprocess
-import xmlrpclib
 import random
 import struct
 import binascii
 import re
+import json
+import urllib2
 
 try:
     import scapy.all as scapy
@@ -260,16 +261,49 @@ def spawnApiClient(parent, user, pswd, rpcport = RPCPORT):
     """
     # Connect from 'API server' and get some info
     logprefix = "SpawnApiClient: "
-    url = "https://" + user + ":" + pswd + "@localhost:" + str(rpcport) + "/xmlrpc"
-    sv = xmlrpclib.ServerProxy(url)
+    url = "https://localhost:" + str(rpcport) 
+    passman = urllib2.HTTPPasswordMgrWithDefaultRealm()
+    passman.add_password(None, url, user, pswd) 
+    authhandler = urllib2.HTTPBasicAuthHandler(passman)
+    opener = urllib2.build_opener(authhandler)
     parent.logger.info(logprefix + "Connecting to: " + url)
-    return sv
+    return opener
 
 
-def setRule(parent, sv, rule, num_try=1):
+def parseResponse(parent, data):
+    j = json.loads(data)
+    if 'error' in j:
+        parent.logger.error("%s -> %s" % (getError(j['error']['code']),j['error']['message']))
+    return j['result']
+
+
+def runCmd(parent, data, cmd, sv, rpcport = RPCPORT):
+    j = { "id" : "fvctl", "method" : cmd, "jsonrpc" : "2.0" }
+    h = {"Content-Type" : "application/json"}
+    if data is not None:  
+        j['params'] = dat
+    url = "https://localhost:" + rpcport  
+    req = urllib2.Request(url, json.dumps(j), h)
+    try:
+        ph = sv.open(req)
+        ph = opener.open(req)
+        return parseResponse(parent,ph.read())
+    except urllib2.HTTPError, e:
+        if e.code == 401:
+            parent.logger.error("Authentication failed: invalid password")
+        elif e.code == 504:
+            parent.logger.error("HTTP Error 504: Gateway timeout")
+        else:
+            print e
+    except RuntimeError, e:
+        print e
+
+def setRule(parent, sv, rule, num_try=1, rpcport = RPCPORT):
     """
     Parses the command and additional parameters in the list, and send
-    it to FlowVisor via API interface.
+    it to FlowVisor via API interface. 
+    Cmds are checked to have the right number of obliatory parameters. Optional
+    ones are passed as an additional dict at the end of the rule list.
     @param parent parent must have logger (Logging object)
     @param sv ServerProxy object
     @param rule command to send to FlowVisor as a list
@@ -284,146 +318,125 @@ def setRule(parent, sv, rule, num_try=1):
     data = None
     while (True):
         try:
-            if rule[0] == "listSlices":
+            if rule[0] == "list-slices":
                 if not (_ruleLenChecker(parent, rule, exp_len=1)):
                     return (success, data)
-                data = sv.api.listSlices()
-            elif rule[0] == "createSlice":
+                data = runCmd(parent, None, rule[0], sv)
+            elif rule[0] == "add-slice":
+                if not (_ruleLenChecker(parent, rule, exp_len=6)):
+                    return (success, data)
+                s = {'slice-name' : rule[1], 'password' : rule[2],
+                    'controller-url' : rule[3], 'admin-contact' : rule[4]}
+                s.update(rule[5])
+                data = runCmd(parent, s, rule[0], sv)
+            elif rule[0] == "update-slice":
+                if not (_ruleLenChecker(parent, rule, exp_len=3)):
+                    return (success, data)
+                s = { 'slice-name' : rule[1] }
+                s.update(rule[2])
+                data = runCmd(parent, s, rule[0], sv)
+            elif rule[0] == "remove-slice":
+                if not (_ruleLenChecker(parent, rule, exp_len=2)):
+                    return (success, data)
+                s = { 'slice-name' : rule[1] }
+                data = runCmd(parent, s, rule[0], sv)
+            elif rule[0] == "update-slice-password":
+                if not (_ruleLenChecker(parent, rule, exp_len=3)):
+                    return (success, data)
+                s = { 'slice-name' : rule[1], 'password' : rule[2] }
+                data = runCmd(parent, s, rule[0], sv)
+            elif rule[0] == "list-flowspace":
+                if not (_ruleLenChecker(parent, rule, exp_len=2)):
+                    return (success, data)
+                s = {}
+                s.update(rule[1])
+                data = runCmd(parent, s, rule[0], sv)
+            elif rule[0] == "remove-flowspace":
+                if not len(rule) > 0:
+                    return (success, data)
+                data = runCmd(parent, rule[1:], rule[0], sv)
+            elif rule[0] == "add-flowspace":
+                if not (_ruleLenChecker(parent, rule, exp_len=6)):
+                    return (success, data)
+                s = { 'name' : rule[1], 'dpid' : rule[2], 'priority' : rule[3],
+                    'match' : rule[4], 'slice-action' : rule[5] }
+                s.update(rule[6])
+                data = runCmd(parent, s, rule[0], sv)
+            elif rule[0] == "update-flowspace":
+                if not (_ruleLenChecker(parent, rule, exp_len=3)):
+                    return (success, data)
+                s = { 'name' : rule[1] }
+                s.update(rule[2])
+                data = runCmd(parent, s, rule[0], sv)
+            elif rule[0] == "list-version":
+                if not (_ruleLenChecker(parent, rule, exp_len=1)):
+                    return (success, data)
+                data = runCmd(parent, None, rule[0], sv)
+            elif rule[0] == "set-config":
+                if not (_ruleLenChecker(parent, rule, exp_len=2)):
+                    return (success, data)
+                s = {}
+                s.updtae(rule[1])
+                data = runCmd(parent, s, rule[0], sv)
+            elif rule[0] == "get-config":
+                if not (_ruleLenChecker(parent, rule, exp_len=2)):
+                    return (success, data)
+                s = {}
+                s.update(rule[1])
+                data = runCmd(parent, s, rule[0], sv)
+            elif rule[0] == "save-config":
+                if not (_ruleLenChecker(parent, rule, exp_len=1)):
+                    return (success, data)
+                data = runCmd(parent, None, rule[0], sv)
+            elif rule[0] == "list-slice-info":
+                if not (_ruleLenChecker(parent, rule, exp_len=2)):
+                    return (success, data)
+                s = { 'slice-name' : rule[1]}
+                data = runCmd(parent, s, rule[0], sv)
+            elif rule[0] == "list-datapaths":
+                if not (_ruleLenChecker(parent, rule, exp_len=1)):
+                    return (success, data)
+                data = runCmd(parent, None, rule[0], sv)
+            elif rule[0] == "list-links":
+                if not (_ruleLenChecker(parent, rule, exp_len=1)):
+                    return (success, data)
+                data = runCmd(parent, None, rule[0], sv)
+            elif rule[0] == "list-datapath-info":
+                if not (_ruleLenChecker(parent, rule, exp_len=2)):
+                    return (success, data)
+                s = { 'dpid' : rule[1] }
+                data = runCmd(parent, s, rule[0], sv)
+            elif rule[0] == "list-slice-stats":
+                if not (_ruleLenChecker(parent, rule, exp_len=2)):
+                    return (success, data)
+                s = { 'slice-name' : rule[1] }
+                data = runCmd(parent, s, rule[0], sv)
+            elif rule[0] == "list-datapath-stats":
+                if not (_ruleLenChecker(parent, rule, exp_len=2)):
+                    return (success, data)
+                s = { 'dpid' : rule[1] }
+                data = runCmd(parent, s, rule[0], sv)
+            elif rule[0] == "list-fv-health":
+                if not (_ruleLenChecker(parent, rule, exp_len=1)):
+                    return (success, data)
+                data = runCmd(parent, None, rule[0], sv)
+            elif rule[0] == "list-slice-health":
+                if not (_ruleLenChecker(parent, rule, exp_len=2)):
+                    return (success, data)
+                s = { 'slice-name' : rule[1] }
+                data = runCmd(parent, s, rule[0], sv)
+            elif rule[0] == "register-event-callback":
                 if not (_ruleLenChecker(parent, rule, exp_len=5)):
                     return (success, data)
-                sv.api.createSlice(rule[1], rule[2], rule[3], rule[4])
-            elif rule[0] == "changeSlice":
+                s = { 'url' : rule[1], 'method' : rule[2], 'event-type' : rule[3],
+                    'cookie' : rule[4] }
+                data = runCmd(parent, s, rule[0], sv)
+            elif rule[0] == "unregister-event-callback":
                 if not (_ruleLenChecker(parent, rule, exp_len=4)):
                     return (success, data)
-                sv.api.changeSlice(rule[1], rule[2], rule[3])
-            elif rule[0] == "deleteSlice":
-                if not (_ruleLenChecker(parent, rule, exp_len=2)):
-                    return (success, data)
-                sv.api.deleteSlice(rule[1])
-            elif rule[0] == "changePasswd":
-                if not (_ruleLenChecker(parent, rule, exp_len=2)):
-                    return (success, data)
-                sv.api.changePasswd(rule[1])
-            elif rule[0] == "getSliceInfo":
-                if not (_ruleLenChecker(parent, rule, exp_len=2)):
-                    return (success, data)
-                data = sv.api.getSliceInfo(rule[1])
-            elif rule[0] == "getSliceStats":
-                if not (_ruleLenChecker(parent, rule, exp_len=2)):
-                    return (success, data)
-                data = sv.api.getSliceStats(rule[1])
-            elif rule[0] == "getSwitchStats":
-                if not (_ruleLenChecker(parent, rule, exp_len=2)):
-                    return (success, data)
-                data = sv.api.getSwitchStats(rule[1])
-            elif rule[0] == "getSwitchFlowDB":
-                if not (_ruleLenChecker(parent, rule, exp_len=2)):
-                    return (success, data)
-                data = sv.api.getSwitchFlowDB(rule[1])
-            elif rule[0] == "getSliceRewriteDB":
-                if not (_ruleLenChecker(parent, rule, exp_len=3)):
-                    return (success, data)
-                data = sv.api.getSliceRewriteDB(rule[1], rule[2])
-            elif rule[0] == "listFlowSpace":
-                if not (_ruleLenChecker(parent, rule, exp_len=1)):
-                    return (success, data)
-                data = sv.api.listFlowSpace()
-            elif rule[0] == "removeFlowSpace":
-                if not (_ruleLenChecker(parent, rule, exp_len=2)):
-                    return (success, data)
-                sv.api.removeFlowSpace(rule[1])
-            elif rule[0] == "changeFlowSpace":
-                if rule[1] == "ADD":
-                    if not (_ruleLenChecker(parent, rule, exp_len=6)):
-                        return (success, data)
-                    sv.api.changeFlowSpace([{"operation" : "ADD", "priority" : rule[2],
-                        "dpid" : rule[3], "match" : rule[4], "actions" : rule[5]}])
-                elif rule[1] == "REMOVE":
-                    if not (_ruleLenChecker(parent, rule, exp_len=3)):
-                        return (success, data)
-                    sv.api.changeFlowSpace([{"operation" : "REMOVE", "id" : rule[2]}])
-                else:
-                    return (success, data)
-            elif rule[0] == "listDevices":
-                if not (_ruleLenChecker(parent, rule, exp_len=1)):
-                    return (success, data)
-                data = sv.api.listDevices()
-            elif rule[0] == "getDeviceInfo":
-                if not (_ruleLenChecker(parent, rule, exp_len=2)):
-                    return (success, data)
-                data = sv.api.getDeviceInfo(rule[1])
-            elif rule[0] == "getLinks":
-                if not (_ruleLenChecker(parent, rule, exp_len=1)):
-                    return (success, data)
-                data = sv.api.getLinks()
-            elif rule[0] == "ping":
-                if not (_ruleLenChecker(parent, rule, exp_len=2)):
-                    return (success, data)
-                data = sv.api.ping(rule[1])
-            elif rule[0] == "getConfig":
-                if not (_ruleLenChecker(parent, rule, exp_len=2)):
-                    return (success, data)
-                data = sv.api.getConfig(rule[1])
-            elif rule[0] == "setConfig":
-                if not (_ruleLenChecker(parent, rule, exp_len=3)):
-                    return (success, data)
-                sv.api.setConfig(rule[1], rule[2])
-            elif rule[0] == "getDefaultFloodPerm":
-                if not (_ruleLenChecker(parent, rule, exp_len=1)):
-                    return (success, data)
-                data = sv.api.getFloodPerm()
-            elif rule[0] == "setDefaultFloodPerm":
-                if not (_ruleLenChecker(parent, rule, exp_len=2)):
-                    return (success, data)
-                sv.api.setFloodPerm(rule[1])
-            elif rule[0] == "getFloodPerm":
-                if not (_ruleLenChecker(parent, rule, exp_len=2)):
-                    return (success, data)
-                data = sv.api.getFloodPerm(rule[1])
-            elif rule[0] == "setFloodPerm":
-                if not (_ruleLenChecker(parent, rule, exp_len=3)):
-                    return (success, data)
-                sv.api.setFloodPerm(rule[1], rule[2])
-            elif rule[0] == "getFlowTracking":
-                if not (_ruleLenChecker(parent, rule, exp_len=1)):
-                    return (success, data)
-                data = sv.api.getFlowTracking()
-            elif rule[0] == "setFlowTracking":
-                if not (_ruleLenChecker(parent, rule, exp_len=2)):
-                    return (success, data)
-                sv.api.setFlowTracking(rule[1])
-            elif rule[0] == "setMaximumFlowMods":
-                if not (_ruleLenChecker(parent, rule, exp_len=4)):
-                    return (success, data)
-                sv.api.setMaximumFlowMods(rule[1], rule[2], rule[3])
-            elif rule[0] == "getMaximumFlowMods":
-                if not (_ruleLenChecker(parent, rule, exp_len=3)):
-                    return (success, data)
-                data = sv.api.getMaximumFlowMods(rule[1], rule[2])
-            elif rule[0] == "getCurrentFlowMods":
-                if not (_ruleLenChecker(parent, rule, exp_len=3)):
-                    return (success, data)
-                data = sv.api.getCurrentFlowMods(rule[1], rule[2])
-            elif rule[0] == "setRateLimit":
-                if not (_ruleLenChecker(parent, rule, exp_len=3)):
-                    return (success, data)
-                data = sv.api.setRateLimit(rule[1],rule[2])
-            elif rule[0] == "registerCallback":
-                if not (_ruleLenChecker(parent, rule, exp_len=4)):
-                    return (success, data)
-                sv.api.registerCallback(rule[1], rule[2], rule[3])
-            elif rule[0] == "registerTopologyEventCallback":
-                if not (_ruleLenChecker(parent, rule, exp_len=4)):
-                    return (success, data)
-                sv.api.registerTopologyEventCallback(rule[1], rule[2], rule[3])
-            elif rule[0] == "deregisterTopologyEventCallback":
-                if not (_ruleLenChecker(parent, rule, exp_len=3)):
-                    return (success, data)
-                sv.api.deregisterTopologyEventCallback(rule[1], rule[2])
-            elif rule[0] == "unregisterCallback":
-                if not (_ruleLenChecker(parent, rule, exp_len=1)):
-                    return (success, data)
-                sv.api.unregisterCallback()
+                s = {'method' : rule[1], 'event-type' : rule[2],
+                    'cookie' : rule[3] }
+                data = runCmd(parent, s, rule[0], sv)
             else:
                 parent.logger.error(logprefix + "Illegal Command: " + rule[0])
                 return (success, data)

@@ -65,18 +65,16 @@ class Ping(templatetest.TemplateTest):
         self.chkSetUpCondition(self.fv, sv_ret, ctl_ret, sw_ret)
 
     def runTest(self):
-        ping_str = "FlowVisor Test"
-        rule = ["ping", ping_str]
-        exp_data1 = "PONG\(fvadmin\):"
-        exp_data2 = ping_str
+        rule = ["list-version"]
+        exp_data_fv = "flowvisor-version"
+        exp_data_db = "db-version" 
         # send the command and expect to receive pong
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
-        self.logger.info("Ping: Expected: " + exp_data1)
-        self.logger.info("Ping: Expected: " + exp_data2)
         self.logger.info("Ping: Received: " + data)
-        self.assertTrue(re.search(exp_data1,data), "%s: Received unexpected message" %(self.__class__.__name__))
-        self.assertTrue(re.search(exp_data2,data), "%s: Received unexpected message" %(self.__class__.__name__))
+        self.assertTrue(data.has_key(exp_data_fv), "%s: Received unexpected message" %(self.__class__.__name__))
+        self.assertTrue(data.has_key(exp_data_db), "%s: Received unexpected message" %(self.__class__.__name__))
+
 
 
 class ListFlowSpace(Ping):
