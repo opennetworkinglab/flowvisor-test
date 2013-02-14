@@ -113,8 +113,10 @@ class EnqueueQueue(EnqueueNoQueue):
     """
     def runTest(self):
 
-
-        rule = ["changeFlowSpace", "ADD", "33000", "all", "in_port=0,dl_src=00:00:00:00:00:02,queues=1", "Slice:controller0=4"]
+        rule = ['add-flowspace', "EnqueueQueue", "all", 33000,
+            {'in_port': 0 ,'dl_src' : "00:00:00:00:00:02"},
+            [{'slice-name' : "controller0", 'permission' : 4 }], 
+            { 'queues' : [1] } ]
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: Not success" %(self.__class__.__name__)) 
 
@@ -138,8 +140,11 @@ class EnqueueForce(EnqueueNoQueue):
     """
     def runTest(self):
 
+        rule = ['add-flowspace', "EnqueueForce1", "all", 31000,
+            {'in_port': 0 ,'dl_src' : "00:00:00:00:00:03"},
+            [{'slice-name' : "controller0", 'permission' : 4 }], 
+            { 'queues' : [1], 'force-enqueue' : 1 } ]
 
-        rule = ["changeFlowSpace", "ADD", "31000", "all", "in_port=0,dl_src=00:00:00:00:00:03,queues=1,force_enqueue=1", "Slice:controller0=4"]
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: Not success" %(self.__class__.__name__)) 
 
@@ -151,8 +156,12 @@ class EnqueueForce(EnqueueNoQueue):
         res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
         self.assertTrue(res, "%s : FlowModEnqueue: Received unexepected message" % (self.__class__.__name__))
 
+        rule = ['add-flowspace', "EnqueueForce2", "all", 31000,
+            {'in_port': 0 ,'dl_src' : "00:00:00:00:00:04"},
+            [{'slice-name' : "controller0", 'permission' : 4 }], 
+            { 'queues' : [1,2,3], 'force-enqueue' : 1 } ]
 
-        rule = ["changeFlowSpace", "ADD", "31000", "all", "in_port=0,dl_src=00:00:00:00:00:04,queues=1:2:3,force_enqueue=1", "Slice:controller0=4"]
+
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: Not success" %(self.__class__.__name__)) 
 
@@ -174,7 +183,12 @@ class QueueConfig(EnqueueNoQueue):
     """
     
     def runTest(self):
-        rule = ["changeFlowSpace", "ADD", "31000", "all", "in_port=0,dl_src=00:00:00:00:00:03,queues=1,force_enqueue=1", "Slice:controller0=4"]
+        rule = ['add-flowspace', "QueueConfig", "all", 31000,
+            {'in_port': 0 ,'dl_src' : "00:00:00:00:00:03"},
+            [{'slice-name' : "controller0", 'permission' : 4 }], 
+            { 'queues' : [1], 'force-enqueue' : 1 } ]
+
+
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
 

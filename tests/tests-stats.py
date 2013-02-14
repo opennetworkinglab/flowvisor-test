@@ -79,8 +79,10 @@ class PortStats(templatetest.TemplateTest):
         # Prepare additional rules to set
         # Set a rule in addition to a default config,
         # Now controller0 handles packets with specific dl_src from/to any ports
-        rule1 = ["changeFlowSpace", "ADD", "34000", "all", "dl_src=00:11:22:33:44:55", "Slice:controller0=4"]
-        rule2 = ["listFlowSpace"]
+        rule1 = [ 'add-flowspace', 'PortStatsSetup', 'all', 34000,
+                 { 'dl_src' : '00:11:22:33:44:55' },
+                 [{ 'slice-name' : 'controller0', 'permission' : 4 }], {}]
+        rule2 = ["list-flowspace", {}]
         rules = [rule1, rule2]
         # Set up the test environment
         # -- Note: default setting: config_file = test-base.xml, num of SW = 1, num of CTL = 2
@@ -132,7 +134,11 @@ class PortStats(templatetest.TemplateTest):
 class QueueStats(PortStats):
 
     def runTest(self):
-        rule = ["changeFlowSpace", "ADD", "33000", "all", "in_port=2,dl_src=00:00:00:00:00:02,queues=1", "Slice:controller0=4"]
+
+        rule = ['add-flowspace', 'QueueStats', 'all', 33000,
+               { 'in_port' : 2 , 'dl_src': '00:00:00:00:00:02' },
+               [{ 'slice-name' : 'controller0', 'permission' : 4 }],
+               { 'queues' : [1] } ]
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
     

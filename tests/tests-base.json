@@ -1,7 +1,8 @@
 {
     "flowvisor": [
         {
-            "api_webserver_port": 18080,
+            "api_webserver_port": -1,
+            "api_jetty_webserver_port" : 18080,
             "checkpointing": false,
             "listen_port": 16633,
             "db_version": 2
@@ -47,7 +48,7 @@
     ],
     "FlowSpaceRule": [
         {
-            "rule_id": 1000,
+            "name": "1000",
             "wildcards": 4194298,
             "priority": 32000,
             "in_port": 0,
@@ -60,7 +61,7 @@
             ]
         },
         {
-            "rule_id": 1001,
+            "name": "1001",
             "wildcards": 4194298,
             "priority": 32000,
             "in_port": 0,
@@ -73,7 +74,7 @@
             ]
         },
         {
-            "rule_id": 1002,
+            "name": "1002",
             "wildcards": 4194298,
             "priority": 32000,
             "in_port": 2,
@@ -86,7 +87,7 @@
             ]
         },
         {
-            "rule_id": 1003,
+            "name": "1003",
             "wildcards": 4194298,
             "priority": 32000,
             "in_port": 2,
@@ -99,7 +100,7 @@
             ]
         },
         {
-            "rule_id": 1004,
+            "name": "1004",
             "wildcards": 4194298,
             "priority": 32000,
             "in_port": 3,
@@ -112,7 +113,7 @@
             ]
         },
         {
-            "rule_id": 1005,
+            "name": "1005",
             "wildcards": 4194298,
             "priority": 32000,
             "in_port": 3,
@@ -125,7 +126,7 @@
             ]
         },
         {
-            "rule_id": 1006,
+            "name": "1006",
             "wildcards": 4194298,
             "priority": 32000,
             "in_port": 1,
@@ -138,7 +139,7 @@
             ]
         },
         {
-            "rule_id": 1007,
+            "name": "1007",
             "wildcards": 4194298,
             "priority": 32000,
             "in_port": 1,
@@ -151,7 +152,7 @@
             ]
         },
         {
-            "rule_id": 1008,
+            "name": "1008",
             "wildcards": 4194298,
             "priority": 32000,
             "in_port": 3,
@@ -164,7 +165,7 @@
             ]
         },
         {
-            "rule_id": 1009,
+            "name": "1009",
             "wildcards": 4194298,
             "priority": 32000,
             "in_port": 3,

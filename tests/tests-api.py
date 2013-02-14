@@ -71,7 +71,7 @@ class Ping(templatetest.TemplateTest):
         # send the command and expect to receive pong
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
-        self.logger.info("Ping: Received: " + data)
+        self.logger.info("Ping: Received: %s" % data)
         self.assertTrue(data.has_key(exp_data_fv), "%s: Received unexpected message" %(self.__class__.__name__))
         self.assertTrue(data.has_key(exp_data_db), "%s: Received unexpected message" %(self.__class__.__name__))
 
@@ -84,13 +84,13 @@ class ListFlowSpace(Ping):
     the correct response
     """
     def runTest(self):
-        rule = ["listFlowSpace"]
+        rule = ["list-flowspace", {}]
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
         num_flow = len(data)
-        self.logger.info("ListFlowSpace: Expected:     " + str(testutils.NUM_FLOWSPACE_IN_CONF_FILE))
-        self.logger.info("ListFlowSpace: Received:     " + str(num_flow))
-        self.logger.debug("ListFlowSpace: Raw received: " + str(data))
+        self.logger.info("ListFlowSpace: Expected:     %s" % testutils.NUM_FLOWSPACE_IN_CONF_FILE)
+        self.logger.info("ListFlowSpace: Received:     %s" % num_flow)
+        self.logger.debug("ListFlowSpace: Raw received: %s" % data)
         self.assertEqual(num_flow, testutils.NUM_FLOWSPACE_IN_CONF_FILE, "%s: Received wrong number of flow space" %(self.__class__.__name__))
 
 
@@ -101,7 +101,7 @@ class ListDevices(Ping):
     the correct response
     """
     def runTest(self):
-        rule = ["listDevices"]
+        rule = ["list-datapaths"]
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
         num_dev = len(data)
@@ -118,7 +118,7 @@ class GetLinks(Ping):
     the correct number of links
     """
     def runTest(self):
-        rule = ["getLinks"]
+        rule = ["list-links"]
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
         num_link = len(data)
@@ -134,7 +134,7 @@ class ChangeFlowSpace(Ping):
     Check if FlowVisor receives changeFlowSpace from API client without error
     """
     def runTest(self):
-        rule = ["changeFlowSpace", "REMOVE", testutils.EXIST_ID_IN_CONF_FILE]
+        rule = ["remove-flowspace", testutils.EXIST_ID_IN_CONF_FILE]
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
 
@@ -151,27 +151,27 @@ class CreateSlice(Ping):
         slice_pswd = "ctl2pass"
         slice_port = "tcp:localhost:54323"
         slice_email = "ctl2@foo.com"
-        rule = ["createSlice", slice_name, slice_pswd, slice_port, slice_email]
+        rule = ["add-slice", slice_name, slice_pswd, slice_port, slice_email, {}]
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: CreateSlice: Not success" %(self.__class__.__name__))
 
         # check if it has been created
-        rule = ["getSliceInfo", "controller2"]
+        rule = ["list-slice-info", "controller2"]
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: GetSliceInfo: Not success" %(self.__class__.__name__))
         num_data = len(data)
         self.assertTrue(len(data)>0, "%s: Slice Creation Failed" %(self.__class__.__name__))
-        self.assertTrue(data.has_key('contact_email'), "%s: No contact_email" %(self.__class__.__name__))
+        self.assertTrue(data.has_key('admin-contact'), "%s: No contact_email" %(self.__class__.__name__))
         self.logger.info("CreateSlice: Expected:     " + slice_email)
-        self.logger.info("CreateSlice: Received:     " + data.get('contact_email'))
+        self.logger.info("CreateSlice: Received:     " + data.get('admin-contact'))
         self.logger.debug("CreateSlice: Raw received: " + str(data))
         # this data is a list
-        self.assertEqual(data.get('contact_email'), slice_email, "%s: Received wrong slice_email" %(self.__class__.__name__))
+        self.assertEqual(data.get('admin-contact'), slice_email, "%s: Received wrong slice_email" %(self.__class__.__name__))
 
         # Try to create a slice with a same name and different configuration.
         # Should be failed
         slice_random_email = "ctl2@bar.com"
-        rule = ["createSlice", slice_name, slice_pswd, slice_port, slice_random_email]
+        rule = ["add-lice", slice_name, slice_pswd, slice_port, slice_random_email, {}]
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertFalse(success, "%s: Shouldn't be created" %(self.__class__.__name__))
 
@@ -181,7 +181,7 @@ class CreateSlice(Ping):
         slice_pswd = "ctl3pass"
         slice_port = "tcp:localhost:54324"
         slice_email = "ctl3@foo.com"
-        rule = ["createSlice", slice_name, slice_pswd, slice_port, slice_email]
+        rule = ["add-slice", slice_name, slice_pswd, slice_port, slice_email, {}]
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: The slice should be created" %(self.__class__.__name__))
 
@@ -195,13 +195,13 @@ class DeleteSlice(Ping):
     """
     def runTest(self):
         # Try to delete controller0
-        rule = ["deleteSlice", testutils.EXIST_SLICE0_IN_CONF_FILE]
+        rule = ["remove-slice", testutils.EXIST_SLICE0_IN_CONF_FILE]
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: DeleteSlice: Not success" %(self.__class__.__name__))
 
         remaining_fs = testutils.NUM_FLOWSPACE_IN_CONF_FILE-testutils.NUM_FLOWSPACE_EXIST_SLICE0
         # Check number of flow space
-        rule = ["listFlowSpace"]
+        rule = ["list-flowspace", {}]
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: ListFlowSpace: Not success" %(self.__class__.__name__))
 
@@ -229,21 +229,15 @@ class SliceOwner(Ping):
         sv_ctl1 = testutils.spawnApiClient(self, slice_user, slice_pswd)
 
         # ping
-        ping_str = "Controller1 Test"
-        rule = ["ping", ping_str]
-        exp_data1 = "PONG\(controller1\):"
-        exp_data2 = ping_str
+        rule = ["list-version"]
         # send the command and expect to receive pong
         (success, data) = testutils.setRule(self, sv_ctl1, rule)
         self.assertTrue(success, "%s: Ping: Not success" %(self.__class__.__name__))
-        self.logger.info("Ping: Expected: " + exp_data1)
-        self.logger.info("Ping: Expected: " + exp_data2)
-        self.logger.info("Ping: Received: " + data)
-        self.assertTrue(re.search(exp_data1,data), "%s: Received unexpected message" %(self.__class__.__name__))
-        self.assertTrue(re.search(exp_data2,data), "%s: Received unexpected message" %(self.__class__.__name__))
+        self.assertTrue(data.has_key('flowvisor-version'), "%s: Received unexpected message" %(self.__class__.__name__))
+        self.assertTrue(data.has_key('db-version'), "%s: Received unexpected message" %(self.__class__.__name__))
 
         # listFlowSpace
-        rule = ["listFlowSpace"]
+        rule = ["list-flowspace", {}]
         (success, data) = testutils.setRule(self, sv_ctl1, rule)
         self.assertTrue(success, "%s: ListFlowSpace: Not success" %(self.__class__.__name__))
         num_flow = len(data)
@@ -255,28 +249,28 @@ class SliceOwner(Ping):
         # changeSlice
         # change email
         new_email = "controller1new@new.com"
-        rule = ["changeSlice", slice_user, "contact_email", new_email]
+        rule = ["update-slice", slice_user,{ "admin-contact": new_email}]
         (success, data) = testutils.setRule(self, sv_ctl1, rule)
         self.assertTrue(success, "%s: ChangeSlice: Not success" %(self.__class__.__name__))
 
         # changeSlice
         # change port
-        new_port = "44444"
-        rule = ["changeSlice", slice_user, "controller_port", new_port]
+        new_port = 44444
+        rule = ["update-slice", slice_user, {"controller-port": new_port}]
         (success, data) = testutils.setRule(self, sv_ctl1, rule)
         self.assertTrue(success, "%s: ChangeSlice: Not success" %(self.__class__.__name__))
 
         # getSliceInfo
         # Check email and port above have been set
-        rule = ["getSliceInfo", slice_user]
+        rule = ["list-slice-info", slice_user]
         (success, data) = testutils.setRule(self, sv_ctl1, rule)
         self.assertTrue(success, "%s: GetSliceInfo: Not success" %(self.__class__.__name__))
         # The response is a dictionary
         # It should contain "contact_name" and "controller_port"
         self.logger.info("GetSliceInfo: Expected:     " + new_email)
-        self.logger.info("GetSliceInfo: Received:     " + data['contact_email'])
-        self.logger.info("GetSliceInfo: Expected:     " + new_port)
-        self.logger.info("GetSliceInfo: Received:     " + data['controller_port'])
+        self.logger.info("GetSliceInfo: Received:     " + data['admin-contact'])
+        self.logger.info("GetSliceInfo: Expected:     %s" % new_port)
+        self.logger.info("GetSliceInfo: Received:     " + data['controller-url'])
         self.logger.debug("GetSliceInfo: Raw received: " + str(data))
-        self.assertEqual(data['contact_email'], new_email, "%s: Received unexpected contact_email" %(self.__class__.__name__))
-        self.assertEqual(data['controller_port'], new_port, "%s: Received unexpected controller_port" %(self.__class__.__name__))
+        self.assertEqual(data['admin-contact'], new_email, "%s: Received unexpected contact_email" %(self.__class__.__name__))
+        self.assertTrue(re.search(str(new_port), data['controller-url']), "%s: Received unexpected controller_port" %(self.__class__.__name__))

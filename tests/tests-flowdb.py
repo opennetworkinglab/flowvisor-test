@@ -155,7 +155,7 @@ class TrackOn(TrackOff):
     """
     def runTest(self):
         # Enable tracking
-        rule = ["setFlowTracking", "True"]
+        rule = ["set-config", {'track-flows' : True}]
         (success, stats) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: Could not enable flow track" %(self.__class__.__name__))
 

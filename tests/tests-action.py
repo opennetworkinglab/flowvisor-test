@@ -12,6 +12,7 @@ import oftest.parse as parse
 import oftest.action as action
 import oftest.error as error
 import socket
+import time
 
 # ------ Start: Mandatory portion on each test case file ------
 
@@ -88,7 +89,9 @@ class DataLayerSourceError(DataLayerSourceAction):
     """
     def runTest(self):
         #Add a rule to the fv config
-        rule =  ["changeFlowSpace", "ADD", "33000", "all", "in_port=0,dl_src=00:00:00:00:00:02", "Slice:controller0=4"]
+        rule =  ["add-flowspace", "datalayersource", "all", 33000, 
+                { 'in_port' : 0, 'dl_src' : "00:00:00:00:00:02" }, 
+                [{ 'slice-name' : "controller0", 'permission' : 4}], {}]            
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
 
@@ -119,7 +122,13 @@ class DataLayerDestinationAction(DataLayerSourceAction):
     """
     def runTest(self):
         #Add a dl_dst rule to the fv config
-        rule =  ["changeFlowSpace", "ADD", "33000", "all", "in_port=0,dl_dst=00:00:00:00:00:02", "Slice:controller0=4"]
+        
+
+        rule =  ["add-flowspace", "datalayerdstact", "all", 33000, 
+                { 'in_port' : 0, 'dl_dst' : "00:00:00:00:00:02" }, 
+                [{ 'slice-name' : "controller0", 'permission' : 4}], {}]            
+        
+
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
 
@@ -170,7 +179,12 @@ class NetLayerSourceAction(DataLayerSourceAction):
     """
     def runTest(self):
         #Add a nw_src rule to the fv config
-        rule =  ["changeFlowSpace", "ADD", "35000", "all", "in_port=0,nw_src=192.168.0.5", "Slice:controller0=4"]
+
+        rule =  ["add-flowspace", "netlayersrcact", "all", 35000, 
+                { 'in_port' : 0, 'nw_src' : "192.168.0.5" }, 
+                [{ 'slice-name' : "controller0", 'permission' : 4}], {}]            
+ 
+
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
 
@@ -222,11 +236,20 @@ class NetLayerDestinationAction(DataLayerSourceAction):
     """
     def runTest(self):
         #Add a nw_dst rule to the fv config
-        rule =  ["changeFlowSpace", "ADD", "35000", "all", "in_port=0,nw_dst=192.168.0.5", "Slice:controller0=4"]
+
+        rule =  ["add-flowspace", "netlayerdstact", "all", 35000, 
+                { 'in_port' : 0, 'nw_dst' : "192.168.0.5" }, 
+                [{ 'slice-name' : "controller0", 'permission' : 4}], {}]            
+ 
+
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
 
-        rule =  ["changeFlowSpace", "ADD", "35000", "all", "in_port=0,nw_dst=192.168.0.7", "Slice:controller0=4"]
+        rule =  ["add-flowspace", "netlayerdstact", "all", 35000, 
+                { 'in_port' : 0, 'nw_dst' : "192.168.0.7" }, 
+                [{ 'slice-name' : "controller0", 'permission' : 4}], {}]            
+
+    
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
 
@@ -277,11 +300,19 @@ class NetLayerTOSAction(DataLayerSourceAction):
     """
     def runTest(self):
 
-        rule =  ["changeFlowSpace", "ADD", "35000", "all", "nw_tos=5", "Slice:controller0=4"]
+        rule =  ["add-flowspace", "netlayertos", "all", 35000, 
+                { 'nw_tos' : 5 }, 
+                [{ 'slice-name' : "controller0", 'permission' : 4}], {}]            
+
+
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
 
-        rule =  ["changeFlowSpace", "ADD", "35000", "all", "nw_tos=7", "Slice:controller0=4"]
+        rule =  ["add-flowspace", "netlayertos", "all", 35000, 
+                { 'nw_tos' : 7 }, 
+                [{ 'slice-name' : "controller0", 'permission' : 4}], {}]            
+
+
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
 
@@ -328,11 +359,21 @@ class TransportLayerSourceAction(DataLayerSourceAction):
         Send Flow_mod message to change the tp_src
     """
     def runTest(self):
-        rule =  ["changeFlowSpace", "ADD", "35000", "all", "tp_src=1020", "Slice:controller0=4"]
+
+        rule =  ["add-flowspace", "tplsa", "all", 35000, 
+                { 'tp_src' : 1020 }, 
+                [{ 'slice-name' : "controller0", 'permission' : 4}], {}]            
+
+
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
 
-        rule =  ["changeFlowSpace", "ADD", "35000", "all", "tp_src=2020", "Slice:controller0=4"]
+        rule =  ["add-flowspace", "tplsa", "all", 35000, 
+                { 'tp_src' : 2020 }, 
+                [{ 'slice-name' : "controller0", 'permission' : 4}], {}]            
+
+
+
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
 
@@ -379,11 +420,22 @@ class TransportLayerDestinationAction(DataLayerSourceAction):
         Send Flow_mod message to change the tp_dst
     """
     def runTest(self):
-        rule =  ["changeFlowSpace", "ADD", "35000", "all", "tp_dst=25", "Slice:controller0=4"]
+
+
+        rule =  ["add-flowspace", "tplda", "all", 35000, 
+                { 'tp_dst' : 25 }, 
+                [{ 'slice-name' : "controller0", 'permission' : 4}], {}]            
+
+
+    
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
 
-        rule =  ["changeFlowSpace", "ADD", "35000", "all", "tp_dst=80", "Slice:controller0=4"]
+        rule =  ["add-flowspace", "tplda", "all", 35000, 
+                { 'tp_dst' : 80 }, 
+                [{ 'slice-name' : "controller0", 'permission' : 4}], {}]            
+
+
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
 
@@ -431,11 +483,17 @@ class VlanIdAction(DataLayerSourceAction):
         Send Flow_mod message to change the dl_vlan
     """
     def runTest(self):
-        rule =  ["changeFlowSpace", "ADD", "35000", "all", "dl_vlan=1080", "Slice:controller0=4"]
+        rule =  ["add-flowspace", "vact", "all", 35000, 
+                { 'dl_vlan' : 1080 }, 
+                [{ 'slice-name' : "controller0", 'permission' : 4}], {}]            
+
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
 
-        rule =  ["changeFlowSpace", "ADD", "35000", "all", "dl_vlan=2080", "Slice:controller0=4"]
+        rule =  ["add-flowspace", "vact", "all", 35000, 
+                { 'dl_vlan' : 2080 }, 
+                [{ 'slice-name' : "controller0", 'permission' : 4}], {}]            
+
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
 
@@ -482,7 +540,13 @@ class VlanPrioAction(DataLayerSourceAction):
         Send Flow_mod message to change the nw_src
     """
     def runTest(self):
-        rule =  ["changeFlowSpace", "ADD", "35000", "all", "dl_src=00:01:00:00:00:02,dl_dst=00:00:00:00:00:10,dl_vlan=0x438,dl_vpcp=7", "Slice:controller0=4"]
+
+        rule =  ["add-flowspace", "vpact", "all", 35000, 
+                { 'dl_vlan' : 1080, 'dl_src' : '00:01:00:00:00:02', 
+                    'dl_dst' : "00:00:00:00:00:10", 'dl_vpcp' : 7 }, 
+                [{ 'slice-name' : "controller0", 'permission' : 4}], {}]            
+
+
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
 
@@ -530,9 +594,12 @@ class StripVlanAction(DataLayerSourceAction):
         Send Flow_mod message to change the nw_src
     """
     def runTest(self):
-        rule =  ["changeFlowSpace", "ADD", "35000", "all", "dl_src=00:01:00:00:00:02,dl_vlan=200", "Slice:controller0=4"]
-        #rule =  ["changeFlowSpace", "ADD", "35000", "all", "dl_src=00:01:00:00:00:02,dl_dst=00:00:00:00:00:10", "Slice:controller0=4"]
-        #rule =  ["changeFlowSpace", "ADD", "35000", "all", "dl_src=00:06:07:08:09:0a,dl_dst=00:01:02:03:04:05,dl_vlan=200", "Slice:controller0=4"]
+
+        rule =  ["add-flowspace", "vpact", "all", 35000, 
+                { 'dl_vlan' : 200, 'dl_src' : '00:01:00:00:00:02' },
+                [{ 'slice-name' : "controller0", 'permission' : 4}], {}]            
+
+
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
 

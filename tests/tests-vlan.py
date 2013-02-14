@@ -72,8 +72,9 @@ class NoVlan1(templatetest.TemplateTest):
         templatetest.TemplateTest.setUp(self)
         self.logger = basic_logger
         # Prepare additional rules to set
-        rule1 = ["changeFlowSpace", "ADD", "33000", "all", "dl_vlan=812", "Slice:controller0=4"]
-        rule2 = ["listFlowSpace"]
+        rule1 = ['add-flowspace', "novlansetup", 'all', 33000,
+                {'dl_vlan':812}, [{'slice-name' : 'controller0', 'permission' : 4}], {}]
+        rule2 = ["list-flowspace", {}]
         rules = [rule1, rule2]
         # Set up the test environment
         # -- Note: default setting: config_file = test-base.xml, num of SW = 1, num of CTL = 2
@@ -148,10 +149,15 @@ class Internet2_Vlans(templatetest.TemplateTest):
     """
 
     def runTest(self):
-        rule1 = ["changeFlowSpace", "ADD", "33000", "00:00:00:00:00:00:00:00", "dl_vlan=1", "Slice:controller0=4"]
-        rule2 = ["changeFlowSpace", "ADD", "33000", "00:00:00:00:00:00:00:00", "dl_vlan=2", "Slice:controller0=4"]
 
-        rule3 = ["listFlowSpace"]
+        rule1 = ['add-flowspace', "novlansetup", '00:00:00:00:00:00:00:00', 33000,
+                {'dl_vlan':1}, [{'slice-name' : 'controller0', 'permission' : 4}], {}]
+        rule2 = ['add-flowspace', "novlansetup", '00:00:00:00:00:00:00:00', 33000,
+                {'dl_vlan':2}, [{'slice-name' : 'controller0', 'permission' : 4}], {}]
+
+
+
+        rule3 = ["list-flowspace", {}]
         rules = [rule1, rule2, rule3]
         # Set up the test environment
         # -- Note: default setting: config_file = test-base.xml, num of SW = 1, num of CTL = 2

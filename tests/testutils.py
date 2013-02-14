@@ -57,7 +57,7 @@ SRC_MAC_FOR_CTL1_1 = "00:01:00:00:00:01"
 
 NUM_FLOWSPACE_IN_CONF_FILE = 10
 NUM_LINK_IN_CONF_FILE = 2
-EXIST_ID_IN_CONF_FILE = str(1)
+EXIST_ID_IN_CONF_FILE = "1000"
 EXIST_SLICE0_IN_CONF_FILE = "controller0"
 EXIST_SLICE1_IN_CONF_FILE = "controller1"
 NUM_FLOWSPACE_EXIST_SLICE0 = 6
@@ -273,20 +273,19 @@ def spawnApiClient(parent, user, pswd, rpcport = RPCPORT):
 def parseResponse(parent, data):
     j = json.loads(data)
     if 'error' in j:
-        parent.logger.error("%s -> %s" % (getError(j['error']['code']),j['error']['message']))
+        parent.logger.error("%s" % (j['error']['message']))
     return j['result']
 
 
 def runCmd(parent, data, cmd, sv, rpcport = RPCPORT):
-    j = { "id" : "fvctl", "method" : cmd, "jsonrpc" : "2.0" }
+    j = { "id" : "fv-test", "method" : cmd, "jsonrpc" : "2.0" }
     h = {"Content-Type" : "application/json"}
     if data is not None:  
-        j['params'] = dat
-    url = "https://localhost:" + rpcport  
+        j['params'] = data
+    url = "https://localhost:%d" % rpcport  
     req = urllib2.Request(url, json.dumps(j), h)
     try:
         ph = sv.open(req)
-        ph = opener.open(req)
         return parseResponse(parent,ph.read())
     except urllib2.HTTPError, e:
         if e.code == 401:
@@ -356,12 +355,13 @@ def setRule(parent, sv, rule, num_try=1, rpcport = RPCPORT):
                     return (success, data)
                 data = runCmd(parent, rule[1:], rule[0], sv)
             elif rule[0] == "add-flowspace":
-                if not (_ruleLenChecker(parent, rule, exp_len=6)):
+                if not (_ruleLenChecker(parent, rule, exp_len=7)):
                     return (success, data)
                 s = { 'name' : rule[1], 'dpid' : rule[2], 'priority' : rule[3],
                     'match' : rule[4], 'slice-action' : rule[5] }
                 s.update(rule[6])
-                data = runCmd(parent, s, rule[0], sv)
+                data = runCmd(parent, [s], rule[0], sv)
+                time.sleep(0.5)
             elif rule[0] == "update-flowspace":
                 if not (_ruleLenChecker(parent, rule, exp_len=3)):
                     return (success, data)
@@ -376,7 +376,7 @@ def setRule(parent, sv, rule, num_try=1, rpcport = RPCPORT):
                 if not (_ruleLenChecker(parent, rule, exp_len=2)):
                     return (success, data)
                 s = {}
-                s.updtae(rule[1])
+                s.update(rule[1])
                 data = runCmd(parent, s, rule[0], sv)
             elif rule[0] == "get-config":
                 if not (_ruleLenChecker(parent, rule, exp_len=2)):
@@ -437,6 +437,16 @@ def setRule(parent, sv, rule, num_try=1, rpcport = RPCPORT):
                 s = {'method' : rule[1], 'event-type' : rule[2],
                     'cookie' : rule[3] }
                 data = runCmd(parent, s, rule[0], sv)
+            elif rule[0] == "list-datapath-flowdb":
+                if not (_ruleLenChecker(parent, rule, exp_len=2)):
+                    return (success, data)
+                s = {'dpid' : rule[1] }
+                data = runCmd(parent, s, rule[0], sv)
+            elif rule[0] == "list-datapath-flowrewritedb":
+                if not (_ruleLenChecker(parent, rule, exp_len=3)):
+                    return (success, data)
+                s = {'dpid' : rule[2], 'slice-name' : rule[1] }
+                data = runCmd(parent, s, rule[0], sv)
             else:
                 parent.logger.error(logprefix + "Illegal Command: " + rule[0])
                 return (success, data)
@@ -488,7 +498,7 @@ def chkFlowdb(parent, controller_number, switch_number, exp_count, exp_rewrites=
     slicename = parent.controllers[controller_number].name
     dpid_str = str(switch_number)
 
-    (success, flows) = setRule(parent, parent.sv, ["getSwitchFlowDB", dpid_str])
+    (success, flows) = setRule(parent, parent.sv, ["list-datapath-flowdb", dpid_str])
     if success:
         parent.logger.info("flows are:")
         parent.logger.info(flows)
@@ -505,7 +515,7 @@ def chkFlowdb(parent, controller_number, switch_number, exp_count, exp_rewrites=
         parent.logger.error(logprefix + "Expected: %d flows, got: %d flows" % (exp_count, num_flows))
         return False
 
-    (success, rewrites) = setRule(parent, parent.sv, ["getSliceRewriteDB", slicename, dpid_str])
+    (success, rewrites) = setRule(parent, parent.sv, ["list-datapath-flowrewritedb", slicename, dpid_str])
     if success:
         num_rewrites = len(rewrites)
         parent.logger.info(logprefix + "SliceRewriteDB: Got %d rewrites" % num_rewrites)
@@ -539,7 +549,7 @@ def chkSwitchStats(parent, switch_number, ofproto, exp_snd_count, exp_rcv_count)
     logprefix = "ChkSwStats: "
     swname = parent.switches[switch_number].name
     dpid_str = str(switch_number)
-    (success, stats) = setRule(parent, parent.sv, ["getSwitchStats", dpid_str])
+    (success, stats) = setRule(parent, parent.sv, ["list-datapath-stats", dpid_str])
     if success:
         parent.logger.info(logprefix + "Info for " + swname + ":")
         parent.logger.info(stats)
@@ -565,7 +575,7 @@ def chkSliceStats(parent, controller_number, ofproto, exp_snd_count, exp_rcv_cou
     """
     logprefix = "ChkSliceStats: "
     slicename = parent.controllers[controller_number].name
-    (success, stats) = setRule(parent, parent.sv, ["getSliceStats", slicename])
+    (success, stats) = setRule(parent, parent.sv, ["list-slice-stats", slicename])
     if success:
         parent.logger.info(logprefix + "Info for " + slicename + ":")
         parent.logger.info(stats)
@@ -612,14 +622,14 @@ def setUpTestEnv(parent, config_file=CONFIG_FILE, fv_cmd="flowvisor", num_of_swi
     sv = spawnApiClient(parent, user, pswd, rpcport)
 
     # First access to FV. Wait for FV to start. Wait 20times(10s) max.
-    (success, data) = setRule(parent, sv, ["listSlices"], num_try=20)
+    (success, data) = setRule(parent, sv, ["list-slices"], num_try=20)
     if (success == False):
-        parent.logger.error(logprefix + "ListSlices: Could not get response")
+        parent.logger.error(logprefix + "list-slices: Could not get response")
         return (fv, sv, sv_ret, ctl_ret, sw_ret)
 
     parent.logger.info(logprefix + "SliceList: " + str(data))
-    for slicename in data:
-        (success, sliceinfo) = setRule(parent, sv, ["getSliceInfo", slicename])
+    for slic in data:
+        (success, sliceinfo) = setRule(parent, sv, ["list-slice-info", slic['slice-name']])
         parent.logger.info(logprefix + "SliceInfo: " + str(sliceinfo))
 
     if rules != None:
@@ -831,6 +841,8 @@ def ofmsgSndCmpWithXid(parent, snd_list, exp_list, xid_ignore=False, hdr_only=Fa
                         parent.logger.error(logprefix + "Parsed Response:  " + _hdrParse(response))
                         #@TODO Check some stats
                         parent.logger.error(logprefix + sw.name + ": Received unexpected message")
+                        return (False, ret_xid)
+                    elif response is None and exp_msg is not None:
                         return (False, ret_xid)
                 else:
                     if response != exp_msg:

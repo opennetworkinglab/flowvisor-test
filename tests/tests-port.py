@@ -57,8 +57,10 @@ class PktOutInport(templatetest.TemplateTest):
         # Prepare additional rules to set
         # Set a rule in addition to a default config,
         # Now controller0 handles packets with specific dl_src from/to any ports
-        rule1 = ["changeFlowSpace", "ADD", "34000", "all", "dl_src=00:11:22:33:44:55", "Slice:controller0=4"]
-        rule2 = ["listFlowSpace"]
+        rule1 = ["add-flowspace", "PktOutInportsetup", "all", 34000, 
+            {"dl_src" : "00:11:22:33:44:55"}, 
+            [{'slice-name' : 'controller0', 'permission' : 4 }], {} ]
+        rule2 = ["list-flowspace", {} ]
         rules = [rule1, rule2]
         # Set up the test environment
         # -- Note: default setting: config_file = test-base.xml, num of SW = 1, num of CTL = 2
@@ -136,11 +138,13 @@ class RmPortApi(PktOutInport):
     Check if the removed port is now invisible
     """
     def runTest(self):
-        ctl1_port1_ids = ["7","8"] # Related IDs in listFlowSpace
-        for ctl1_id in ctl1_port1_ids:
-            rule = ["changeFlowSpace", "REMOVE", ctl1_id]
-            (success, data) = testutils.setRule(self, self.sv, rule)
-            self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
+        #for ctl1_id in ctl1_port1_ids:
+        #    rule = ["changeFlowSpace", "REMOVE", ctl1_id]
+        #    (success, data) = testutils.setRule(self, self.sv, rule)
+        #    self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
+        rule = ["remove-flowspace", "1006", "1007"]
+        (success, data) = testutils.setRule(self, self.sv, rule)
+        self.assertTrue(success, "%s: Not success" %(self.__class__.__name__)) 
 
         # Ctl1 to sw packet_out_flood. port1 now shouldn't be visible
         ports_ctl = [ofp.OFPP_FLOOD]

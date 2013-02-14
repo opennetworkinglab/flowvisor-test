@@ -87,7 +87,7 @@ class RateLimit(templatetest.TemplateTest):
     def runTest(self):
 
         max = 3
-        rule = ["setRateLimit", "controller0",  str(max)]
+        rule = ["update-slice", "controller0",  {'rate-limit' : max}]
         (success, stats) = testutils.setRule(self, self.sv, rule)
         self.logger.info("Setting rate limit to %s" % max)
         self.assertTrue(success, "%s: Could not set rate limit" %(self.__class__.__name__))
@@ -121,5 +121,4 @@ class RateLimit(templatetest.TemplateTest):
         exp_list = [["controller", 0, err_msg]]
         res = testutils.ofmsgSndCmp(self, snd_list, exp_list, hdr_only=True)
         self.assertTrue(res, "%s: RateLimit: Received unexpected message" %(self.__class__.__name__))
-
 

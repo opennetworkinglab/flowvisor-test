@@ -62,9 +62,9 @@ class DelSlice(templatetest.TemplateTest):
 
     def runTest(self):
         # Prepare slice deletion rules
-        chk_slices = ["listSlices"]
-        del_slice0 = ["deleteSlice", "controller0"]
-        del_slice1 = ["deleteSlice", "controller1"]
+        chk_slices = ["list-slices"]
+        del_slice0 = ["remove-slice", "controller0"]
+        del_slice1 = ["remove-slice", "controller1"]
 
         # Check initial number of slices. Should be three (two controllers + admin)
         (success, data) = testutils.setRule(self, self.sv, chk_slices)

@@ -181,12 +181,12 @@ class Pkt2DelSlice(EchoPayload):
     receive packet_in from switch via FlowVisor
     """
     def runTest(self):
-        rule = ["deleteSlice", "controller0"]
+        rule = ["remove-slice", "controller0"]
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: DelSlice: Not success" %(self.__class__.__name__))
 
         # Check the number of flow space
-        rule = ["listFlowSpace"]
+        rule = ["list-flowspace", {}]
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: ListFlowSpace: Not success" %(self.__class__.__name__))
         self.assertFalse(("controller0" in data), "%s: Failed slice deletion" %(self.__class__.__name__))

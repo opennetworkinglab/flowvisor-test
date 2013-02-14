@@ -105,13 +105,16 @@ class SliceLimit(templatetest.TemplateTest):
     def runTest(self):
 
         max = 3
-        rule = ["setMaximumFlowMods", "controller0", "any", str(max)]
+        rule = ["set-config", { 'flowmod-limit' : 
+            { 'slice-name' : "controller0", 'dpid' : 'any', 'limit' : max } } ]
         (success, stats) = testutils.setRule(self, self.sv, rule)
         self.logger.info("Setting maximum flow mods to %s" % max)
         self.assertTrue(success, "%s: Could not set the maximum allowable flowmods" %(self.__class__.__name__))
 
-       	rule = ["getMaximumFlowMods", "controller0", "any"]
-        (success, num) = testutils.setRule(self, self.sv, rule)
+        
+       	rule = ["get-config", { "slice-name" : "controller0", "dpid" : "any" }]
+        (success, data) = testutils.setRule(self, self.sv, rule)
+        num = data['flowmod-limit']['controller0']['any']
         self.assertEqual(num, max, "%s: Current installed flowmod count incorrect %s != %s " %(self.__class__.__name__, num, max))
 
     	fm1 = _genFlowModArp(self, out_ports = [0])
@@ -135,8 +138,9 @@ class SliceLimit(templatetest.TemplateTest):
         self.assertTrue(res, "%s: FlowMod3: Received unexpected message" %(self.__class__.__name__))
 
 
-    	rule = ["getCurrentFlowMods", "controller0", "any"]
-        (success, num) = testutils.setRule(self, self.sv, rule)
+    	rule = ["list-slice-info", "controller0" ]
+        (success, data) = testutils.setRule(self, self.sv, rule)
+        num = data['current-flowmod-usage']
         self.assertEqual(num, max, "%s: Current installed flowmod count incorrect %s != %s " %(self.__class__.__name__, num, max))
 
         err_msg = error.flow_mod_failed_error_msg()
@@ -148,7 +152,8 @@ class SliceLimit(templatetest.TemplateTest):
         res = testutils.ofmsgSndCmp(self, snd_list, exp_list, hdr_only=True)
         self.assertTrue(res, "%s: FlowLimit: Received unexpected message" %(self.__class__.__name__))
 
-        rule = ["setMaximumFlowMods", "controller0", "any", str(max + 1)]
+        rule = ["set-config", { 'flowmod-limit' :
+            {'slice-name' : "controller0", 'dpid' : "any", 'limit' :max + 1 } }]
         (success, stats) = testutils.setRule(self, self.sv, rule)
         self.logger.info("Setting maximum flow mods to %s" % (max + 1))
         self.assertTrue(success, "%s: Could not set the maximum allowable flowmods" %(self.__class__.__name__))
@@ -179,24 +184,29 @@ class DPIDLimit(SliceLimit):
     	fm4 = _genFlowModArp(self, dl_dst="DE:AD:BE:EF:CA:FE", out_ports = [0])
 
 
-        rule = ["setMaximumFlowMods", "controller0", "00:00:00:00:00:00:00:00", str(limits[0])]
+        rule = ["set-config", { 'flowmod-limit' : 
+                    { 'slice-name' : "controller0", "dpid" : "00:00:00:00:00:00:00:00", 
+                        'limit' : limits[0] } } ]
         (success, stats) = testutils.setRule(self, self.sv, rule)
         self.logger.info("Setting maximum flow mods to %s for switch dpid %s" % (limits[0], 0))
         self.assertTrue(success, "%s: Could not set the maximum allowable flowmods for dpid %s" %(self.__class__.__name__, 0))
 
-         
-        rule = ["setMaximumFlowMods", "controller0", "00:00:00:00:00:00:00:01", str(limits[1])]
+        rule = ["set-config", { 'flowmod-limit' : 
+                    { 'slice-name' : "controller0", "dpid" : "00:00:00:00:00:00:00:01", 
+                        'limit' : limits[1] } } ]
+ 
         (success, stats) = testutils.setRule(self, self.sv, rule)
         self.logger.info("Setting maximum flow mods to %s for switch dpid %s" % (limits[1], 1))
         self.assertTrue(success, "%s: Could not set the maximum allowable flowmods for dpid %s" %(self.__class__.__name__, 1))
 
+        rule = ["get-config", { "slice-name" : "controller0", "dpid" : "00:00:00:00:00:00:00:00" }]
 
-       	rule = ["getMaximumFlowMods", "controller0", "00:00:00:00:00:00:00:00"]
-        (success, num) = testutils.setRule(self, self.sv, rule)
+        (success, data) = testutils.setRule(self, self.sv, rule)
+        num = data['flowmod-limit']['controller0']['00:00:00:00:00:00:00:00']
         self.assertEqual(num, limits[0], "%s: Current installed flowmod count incorrect %s != %s " %(self.__class__.__name__, num, limits[0]))
-
-        rule = ["getMaximumFlowMods", "controller0", "00:00:00:00:00:00:00:01"]
-        (success, num) = testutils.setRule(self, self.sv, rule)
+        rule = ["get-config", { "slice-name" : "controller0", "dpid" : "00:00:00:00:00:00:00:01" }]
+        (success, data) = testutils.setRule(self, self.sv, rule)
+        num = data['flowmod-limit']['controller0']['00:00:00:00:00:00:00:01'] 
         self.assertEqual(num, limits[1], "%s: Current installed flowmod count incorrect %s != %s " %(self.__class__.__name__, num, limits[1]))
 
      	snd_list = ["controller", 0, 0, fm1]
@@ -214,8 +224,9 @@ class DPIDLimit(SliceLimit):
         res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
         self.assertTrue(res, "%s: FlowMod3: Received unexpected message" %(self.__class__.__name__))
 
-    	rule = ["getCurrentFlowMods", "controller0", "00:00:00:00:00:00:00:00"]
-        (success, num) = testutils.setRule(self, self.sv, rule)
+        rule = ["list-datapath-info", "00:00:00:00:00:00:00:00"]
+        (success, data) = testutils.setRule(self, self.sv, rule)
+        num = data['current-flowmod-usage']['controller0']
         self.assertEqual(num, limits[0], "%s: Current installed flowmod count incorrect %s != %s " %(self.__class__.__name__, num, limits[0]))
 
         err_msg = error.flow_mod_failed_error_msg()
@@ -232,8 +243,9 @@ class DPIDLimit(SliceLimit):
         res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
         self.assertTrue(res, "%s: FlowMod1: Received unexpected message" %(self.__class__.__name__))
 
-       	rule = ["getCurrentFlowMods", "controller0", "00:00:00:00:00:00:00:01"]
-        (success, num) = testutils.setRule(self, self.sv, rule)
+        rule = ["list-datapath-info", "00:00:00:00:00:00:00:01"]
+        (success, data) = testutils.setRule(self, self.sv, rule)
+        num = data['current-flowmod-usage']['controller0']
         self.assertEqual(num, 1, "%s: Current installed flowmod count incorrect %s != %s " %(self.__class__.__name__, num, 1))
 
 
@@ -256,34 +268,47 @@ class SliceDPIDLimit(SliceLimit):
     	fm3 = _genFlowModArp(self, out_ports = [3])
     	fm4 = _genFlowModArp(self, dl_dst="DE:AD:BE:EF:CA:FE", out_ports = [0])
 
-
-        rule = ["setMaximumFlowMods", "controller0", "00:00:00:00:00:00:00:00", str(limits[0])]
+        rule = ["set-config",  { 'flowmod-limit' : 
+                    { 'slice-name' : "controller0", "dpid" : "00:00:00:00:00:00:00:00", 
+                        'limit' : limits[0] } } ]
         (success, stats) = testutils.setRule(self, self.sv, rule)
         self.logger.info("Setting maximum flow mods to %s for switch dpid %s" % (limits[0], 0))
         self.assertTrue(success, "%s: Could not set the maximum allowable flowmods for dpid %s" %(self.__class__.__name__, 0))
 
-         
-        rule = ["setMaximumFlowMods", "controller0", "00:00:00:00:00:00:00:01", str(limits[1])]
+        rule = ["set-config",  { 'flowmod-limit' : 
+                    { 'slice-name' : "controller0", "dpid" : "00:00:00:00:00:00:00:01", 
+                        'limit' : limits[1] } } ]
+
         (success, stats) = testutils.setRule(self, self.sv, rule)
         self.logger.info("Setting maximum flow mods to %s for switch dpid %s" % (limits[1], 1))
         self.assertTrue(success, "%s: Could not set the maximum allowable flowmods for dpid %s" %(self.__class__.__name__, 1))
 
-        rule = ["setMaximumFlowMods", "controller0", "any", str(max)]
+
+        rule = ["set-config",  { 'flowmod-limit' : 
+                    { 'slice-name' : "controller0", "dpid" : "any", 
+                        'limit' : max } } ]
+
+
+
         (success, stats) = testutils.setRule(self, self.sv, rule)
         self.logger.info("Setting maximum flow mods to %s" % (max))
         self.assertTrue(success, "%s: Could not set the maximum allowable flowmods" %(self.__class__.__name__))
 
+        
+        rule = ["get-config", { 'slice-name' : "controller0", 'dpid' : "00:00:00:00:00:00:00:00"} ] 
 
-       	rule = ["getMaximumFlowMods", "controller0", "00:00:00:00:00:00:00:00"]
-        (success, num) = testutils.setRule(self, self.sv, rule)
+        (success, data) = testutils.setRule(self, self.sv, rule)
+        num = data['flowmod-limit']['controller0']['00:00:00:00:00:00:00:00']
         self.assertEqual(num, limits[0], "%s: Current installed flowmod count incorrect %s != %s " %(self.__class__.__name__, num, limits[0]))
 
-        rule = ["getMaximumFlowMods", "controller0", "00:00:00:00:00:00:00:01"]
-        (success, num) = testutils.setRule(self, self.sv, rule)
+        rule = ["get-config", { 'slice-name' : "controller0", 'dpid' : "00:00:00:00:00:00:00:01"} ] 
+        (success, data) = testutils.setRule(self, self.sv, rule)
+        num = data['flowmod-limit']['controller0']['00:00:00:00:00:00:00:01']
         self.assertEqual(num, limits[1], "%s: Current installed flowmod count incorrect %s != %s " %(self.__class__.__name__, num, limits[1]))
 
-        rule = ["getMaximumFlowMods", "controller0", "any"]
-        (success, num) = testutils.setRule(self, self.sv, rule)
+        rule = ["get-config", { 'slice-name' : "controller0", 'dpid' : "any"} ] 
+        (success, data) = testutils.setRule(self, self.sv, rule)
+        num = data['flowmod-limit']['controller0']['any']
         self.assertEqual(num, max, "%s: Current installed flowmod count incorrect %s != %s " %(self.__class__.__name__, num, limits[1]))
 
         snd_list = ["controller", 0, 0, fm1]
@@ -301,8 +326,10 @@ class SliceDPIDLimit(SliceLimit):
         res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
         self.assertTrue(res, "%s: FlowMod3: Received unexpected message" %(self.__class__.__name__))
 
-    	rule = ["getCurrentFlowMods", "controller0", "00:00:00:00:00:00:00:00"]
-        (success, num) = testutils.setRule(self, self.sv, rule)
+        rule = ['list-datapath-info', "00:00:00:00:00:00:00:00"]
+
+        (success, data) = testutils.setRule(self, self.sv, rule)
+        num = data['current-flowmod-usage']['controller0']
         self.assertEqual(num, limits[0], "%s: Current installed flowmod count incorrect %s != %s " %(self.__class__.__name__, num, limits[0]))
 
         err_msg = error.flow_mod_failed_error_msg()
@@ -324,12 +351,17 @@ class SliceDPIDLimit(SliceLimit):
         res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
         self.assertTrue(res, "%s: FlowMod3: Received unexpected message" %(self.__class__.__name__))
 
-    	rule = ["getCurrentFlowMods", "controller0", "00:00:00:00:00:00:00:01"]
-        (success, num) = testutils.setRule(self, self.sv, rule)
+
+        rule = ['list-datapath-info', "00:00:00:00:00:00:00:01"]
+        (success, data) = testutils.setRule(self, self.sv, rule)
+        num = data['current-flowmod-usage']['controller0']
         self.assertEqual(num, 2, "%s: Current installed flowmod count incorrect %s != %s " %(self.__class__.__name__, num, 2))
 
-       	rule = ["getCurrentFlowMods", "controller0", "any"]
-        (success, num) = testutils.setRule(self, self.sv, rule)
+
+        rule = ['list-slice-info', "controller0"]
+        (success, data) = testutils.setRule(self, self.sv, rule)
+        num = data['current-flowmod-usage']
+
         self.assertEqual(num, max, "%s: Current installed flowmod count incorrect %s != %s " %(self.__class__.__name__, num, max))
 
         err_msg = error.flow_mod_failed_error_msg()
@@ -347,11 +379,14 @@ class ErrorLimit(SliceLimit):
 
     def runTest(self):
 
-        max = "5"
+        max = 5
         
         fm1 = _genFlowModArp(self, out_ports = [0])
+
+        rule = ["set-config", {'flowmod-limit' : 
+            {'slice-name' : "controller0", 'dpid' : "00:00:00:00:00:00:00:00", 'limit' : max }
+        }]
         
-        rule = ["setMaximumFlowMods", "controller0", "00:00:00:00:00:00:00:00", max]
         (success, stats) = testutils.setRule(self, self.sv, rule)
         self.logger.info("Setting maximum flow mods to %s for switch dpid %s" % (max, 0))
         self.assertTrue(success, "%s: Could not set the maximum allowable flowmods for dpid %s" %(self.__class__.__name__, 0))
@@ -362,8 +397,9 @@ class ErrorLimit(SliceLimit):
         self.assertTrue(res, "%s: FlowMod1: Received unexpected message" %(self.__class__.__name__))
 
 
-        rule = ["getCurrentFlowMods", "controller0", "00:00:00:00:00:00:00:00"]
-        (success, num) = testutils.setRule(self, self.sv, rule)
+        rule = ['list-datapath-info', "00:00:00:00:00:00:00:00"]
+        (success, data) = testutils.setRule(self, self.sv, rule)
+        num = data['current-flowmod-usage']['controller0']
         self.assertEqual(num, 1, "%s: Current installed flowmod count incorrect %s != %s " %(self.__class__.__name__, num, 1))         
 
         err = error.flow_mod_failed_error_msg()
@@ -375,7 +411,8 @@ class ErrorLimit(SliceLimit):
         res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
         self.assertTrue(res, "%s: FlowModErr: Received unexpected message" %(self.__class__.__name__))
 
-        rule = ["getCurrentFlowMods", "controller0", "00:00:00:00:00:00:00:00"]
-        (success, num) = testutils.setRule(self, self.sv, rule)
+        rule = ['list-datapath-info', "00:00:00:00:00:00:00:00"]
+        (success, data) = testutils.setRule(self, self.sv, rule)
+        num = data['current-flowmod-usage']['controller0']
         self.assertEqual(num, 0, "%s: Current installed flowmod count incorrect %s != %s " %(self.__class__.__name__, num, 0))  
 

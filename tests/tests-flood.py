@@ -61,12 +61,21 @@ class FeaturesReply(templatetest.TemplateTest):
         # If in_port is either 0,2 or 3, the msg will go to ctl0
         # But if dl_src is the specific value, it will go to ctl1 (higher priority)
         # Enable 'flood permission' so that flowvisor can pass 'flood' to switches
-        rule1 = ["changeFlowSpace", "ADD", "33000", "all", "in_port=0", "Slice:controller0=4"]
-        rule2 = ["changeFlowSpace", "ADD", "33000", "all", "in_port=2", "Slice:controller0=4"]
-        rule3 = ["changeFlowSpace", "ADD", "33000", "all", "in_port=3", "Slice:controller0=4"]
-        rule4 = ["changeFlowSpace", "ADD", "34000", "all", "dl_src=00:11:22:33:44:55", "Slice:controller1=4"]
-        rule5 = ["setDefaultFloodPerm", "controller1"]
-        rule6 = ["listFlowSpace"]
+
+        rule1 = ['add-flowspace', 'FRS1', 'all', 33000,
+                    { 'in_port' : 0 }, [{ 'slice-name' : 'controller0', 'permission' : 4}], {}] 
+        
+        rule2 = ['add-flowspace', 'FRS2', 'all', 33000,
+                    { 'in_port' : 2 }, [{ 'slice-name' : 'controller0', 'permission' : 4}], {}]
+
+        rule3 = ['add-flowspace', 'FRS3', 'all', 33000,
+                    { 'in_port' : 3 }, [{ 'slice-name' : 'controller0', 'permission' : 4}], {}]
+
+        rule4 = ['add-flowspace', 'FRS4', 'all', 34000,
+                    { 'dl_src' : "00:11:22:33:44:55"}, [{ 'slice-name' : 'controller1', 'permission' : 4}], {}]
+
+        rule5 = ["set-config", { 'flood-perm' : { 'slice-name' : "controller1" } }]
+        rule6 = ["list-flowspace", {}]
         rules = [rule1, rule2, rule3, rule4, rule5, rule6]
         #rules = [rule5, rule6]
         # Set up the test environment
