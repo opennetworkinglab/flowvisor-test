@@ -71,6 +71,7 @@ class FlowModArp(templatetest.TemplateTest):
         flow_mod.header.xid =testutils.genVal32bit()
         flow_mod.command = ofp.OFPFC_ADD
         flow_mod.idle_timeout = 5
+        flow_mod.match.wildcards = 192
 
         snd_list = ["controller", 0, 0, flow_mod]
         exp_list = [["switch", 0, flow_mod]]

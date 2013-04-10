@@ -75,6 +75,7 @@ class DataLayerSourceAction(templatetest.TemplateTest):
 
         action_list.append(act)
         flow_mod1 = testutils.genFloModFromPkt(self, pkt, ing_port=0, action_list=action_list)
+        flow_mod1.match.wildcards = 192
 
         # Now send those two commands and verify them
         snd_list = ["controller", 0, 0, flow_mod1]
@@ -139,6 +140,7 @@ class DataLayerDestinationAction(DataLayerSourceAction):
 
         action_list.append(act)
         flow_mod3 = testutils.genFloModFromPkt(self, pkt, ing_port=0, action_list=action_list)
+        flow_mod3.match.wildcards = 192
 
         # Now send those two commands and verify them
         snd_list = ["controller", 0, 0, flow_mod3]
