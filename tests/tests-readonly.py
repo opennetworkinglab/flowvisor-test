@@ -74,6 +74,46 @@ class PktInPing(templatetest.TemplateTest):
         res = testutils.ofmsgSndCmp(self, snd_list, exp_list)
         self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
 
+class BrokenFlowMod(PktInPing):
+    """
+    Flow_mod with misaligned fields
+    When controller sends misaligned flow_mod, FlowVisor should
+    reject it and send back error message with permission_error
+    """
+    def runTest(self):
+        bad_match = ofp.ofp_match()
+        bad_match.wildcards = 0
+        bad_match.in_port = 2
+        bad_match.dl_dst = parse.parse_mac("00:10:18:07:67:87")
+        bad_match.dl_src = parse.parse_mac("00:0d:b9:15:c0:44")
+        bad_match.dl_type = 0x1100
+        bad_match.dl_vlan = 0xffff
+        bad_match.dl_vlan_pcp = 0x08
+        bad_match.nw_src = 0xc0a80202
+        bad_match.nw_dst = 0x00430044
+        bad_match.nw_tos = 0xc0
+        bad_match.nw_proto = 0xa8
+        bad_match.pad2 = [0x02, 0xfe]
+        bad_match.tp_src = 0
+        bad_match.tp_dst = 5
+
+        bad_flow_mod = message.flow_mod()
+        bad_flow_mod.header.xid = testutils.genVal32bit()
+        bad_flow_mod.match = bad_match
+        bad_flow_mod.cookie = 0x0000800000177097
+        bad_flow_mod.command = 0x406f
+        bad_flow_mod.priority = 0
+        bad_flow_mod.buffer_id = 0xffffffff
+        bad_flow_mod.out_port = 1
+
+        err_msg = error.flow_mod_failed_error_msg()
+        err_msg.code = ofp.OFPFMFC_EPERM
+        err_msg.data = bad_flow_mod.pack()
+
+        snd_list = ["controller", 0, 0, bad_flow_mod]
+        exp_list = [["controller", 0, err_msg]]
+        res = testutils.ofmsgSndCmp(self, snd_list, exp_list, hdr_only=True)
+        self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
 
 class PktOutLldp(PktInPing):
     """
@@ -82,23 +122,29 @@ class PktOutLldp(PktInPing):
     adds 'trailer' before is sends it to switch
     """
     def runTest(self):
-        ports = [0]
+        ports = [0001]
         in_port = ofp.OFPP_CONTROLLER
         lldp_ctl = testutils.simpleLldpPacket(dl_dst="f1:23:20:00:00:01",
                                               dl_src="00:21:5c:54:a6:a1")
+                                              #lldp_chassis_id = "04e2b8dc3b1795",
+                                              #lldp_port_id = "020001")
         pktout_ctl = testutils.genPacketOut(self, in_port=in_port, action_ports=ports, pkt=lldp_ctl)
 
-        trailer = testutils.genTrailer("controller0", "    magic flowvisor1")
+        #trailer = genTrailer("controller0", "magic flowvisor1")
         lldp_sw = testutils.simpleLldpPacket(dl_dst="f1:23:20:00:00:01",
                                              dl_src="00:21:5c:54:a6:a1",
-                                             trailer=trailer)
+                                             #lldp_chassis_id="04e2b8dc3b1795",
+                                             #lldp_chassis_id="04000000000001",
+                                             #lldp_port_id="020001",
+                                             #lldp_ttl="0078",
+                                             lldp_oui_id="a4230501")
+
         pktout_sw = testutils.genPacketOut(self, in_port=in_port, action_ports=ports, pkt=lldp_sw)
 
         snd_list = ["controller", 0, 0, pktout_ctl]
         exp_list = [["switch", 0, pktout_sw]]
         res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
         self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
-
 
 class LldpErr1(PktInPing):
     """
@@ -145,44 +191,29 @@ class LldpErr2(PktInPing):
         res = testutils.ofmsgSndCmp(self, snd_list, exp_list)
         self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
 
-
-class BrokenFlowMod(PktInPing):
+"""
+class Lldp2nobody(PktInPing):"""
     """
-    Flow_mod with misaligned fields
-    When controller sends misaligned flow_mod, FlowVisor should
-    reject it and send back error message with permission_error
+    LLDP from switch to nobody
+    Check that un-trailered LLDP message from switch goes to controller
+    without modification
     """
+"""
     def runTest(self):
-        bad_match = ofp.ofp_match()
-        bad_match.wildcards = 0
-        bad_match.in_port = 2
-        bad_match.dl_dst = parse.parse_mac("00:10:18:07:67:87")
-        bad_match.dl_src = parse.parse_mac("00:0d:b9:15:c0:44")
-        bad_match.dl_type = 0x1100
-        bad_match.dl_vlan = 0xffff
-        bad_match.dl_vlan_pcp = 0x08
-        bad_match.nw_src = 0xc0a80202
-        bad_match.nw_dst = 0x00430044
-        bad_match.nw_tos = 0xc0
-        bad_match.nw_proto = 0xa8
-        bad_match.pad2 = [0x02, 0xfe]
-        bad_match.tp_src = 0
-        bad_match.tp_dst = 5
+        buffer_id = 0x12345678
+        # Generate packet_in with LLDP for nobody (can use the default parameter values)
+        lldp = testutils.simpleLldpPacket(lldp_oui_id="a4230501")
+        in_port = 3
+        pkt_in_lldp = testutils.genPacketIn(buffer_id, in_port=in_port, pkt=lldp)
+        print str(pkt_in_lldp)
 
-        bad_flow_mod = message.flow_mod()
-        bad_flow_mod.header.xid = testutils.genVal32bit()
-        bad_flow_mod.match = bad_match
-        bad_flow_mod.cookie = 0x0000800000177097
-        bad_flow_mod.command = 0x406f
-        bad_flow_mod.priority = 0
-        bad_flow_mod.buffer_id = 0xffffffff
-        bad_flow_mod.out_port = 1
-
-        err_msg = error.flow_mod_failed_error_msg()
-        err_msg.code = ofp.OFPFMFC_EPERM
-        err_msg.data = bad_flow_mod.pack()
-
-        snd_list = ["controller", 0, 0, bad_flow_mod]
-        exp_list = [["controller", 0, err_msg]]
-        res = testutils.ofmsgSndCmp(self, snd_list, exp_list, hdr_only=True)
+        lldp_ctl = testutils.simpleLldpPacket()
+        pkt_in_lldp1 = testutils.genPacketIn(buffer_id, in_port=in_port, pkt=lldp_ctl)
+        print str(pkt_in_lldp1)        
+        
+        # controller0 should receive the same msg
+        snd_list = ["switch", 0, pkt_in_lldp]
+        exp_list = [["controller", 0, pkt_in_lldp1]]
+        res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
         self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
+"""

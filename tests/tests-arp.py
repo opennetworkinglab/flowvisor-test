@@ -48,7 +48,7 @@ def test_set_init(config):
 
 class FlowModArp(templatetest.TemplateTest):
     """
-    Send flow_mod message with arp matching. Should be transparnt to switch
+    Send flow_mod message with arp matching. Should be transparent to switch
     """
     def setUp(self):
         templatetest.TemplateTest.setUp(self)

@@ -107,3 +107,5 @@ class Lldp2nobody(PktIn2Disconn):
         exp_list = [["controller", 0, pkt_in_lldp]]
         res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
         self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
+
+
