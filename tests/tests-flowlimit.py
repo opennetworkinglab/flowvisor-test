@@ -64,6 +64,7 @@ def _genFlowModArp(parent, dl_src = testutils.SRC_MAC_FOR_CTL0_0, dl_dst="00:01:
         act.port = port
         action_list.append(act)
     flow_mod = testutils.genFloModFromPkt(parent, pkt, ing_port=0, action_list=action_list)
+    flow_mod.match.wildcards=192
 
     return flow_mod
 
