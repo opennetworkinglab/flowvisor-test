@@ -125,17 +125,17 @@ class PktOutLldp(PktInPing):
         ports = [0001]
         in_port = ofp.OFPP_CONTROLLER
         lldp_ctl = testutils.simpleLldpPacket(dl_dst="f1:23:20:00:00:01",
-                                              dl_src="00:21:5c:54:a6:a1")
-                                              #lldp_chassis_id = "04e2b8dc3b1795",
-                                              #lldp_port_id = "020001")
+                                              dl_src="00:21:5c:54:a6:a1",
+                                              lldp_chassis_id = "04e2b8dc3b1795",
+                                              lldp_port_id = "020001")
         pktout_ctl = testutils.genPacketOut(self, in_port=in_port, action_ports=ports, pkt=lldp_ctl)
 
         #trailer = genTrailer("controller0", "magic flowvisor1")
         lldp_sw = testutils.simpleLldpPacket(dl_dst="f1:23:20:00:00:01",
                                              dl_src="00:21:5c:54:a6:a1",
-                                             #lldp_chassis_id="04e2b8dc3b1795",
+                                             lldp_chassis_id="04e2b8dc3b1795",
                                              #lldp_chassis_id="04000000000001",
-                                             #lldp_port_id="020001",
+                                             lldp_port_id="020001",
                                              #lldp_ttl="0078",
                                              lldp_oui_id="a4230501")
 
@@ -191,29 +191,20 @@ class LldpErr2(PktInPing):
         res = testutils.ofmsgSndCmp(self, snd_list, exp_list)
         self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
 
-"""
-class Lldp2nobody(PktInPing):"""
+class Lldp2nobody(PktInPing):
     """
     LLDP from switch to nobody
     Check that un-trailered LLDP message from switch goes to controller
     without modification
     """
-"""
     def runTest(self):
-        buffer_id = 0x12345678
         # Generate packet_in with LLDP for nobody (can use the default parameter values)
-        lldp = testutils.simpleLldpPacket(lldp_oui_id="a4230501")
-        in_port = 3
-        pkt_in_lldp = testutils.genPacketIn(buffer_id, in_port=in_port, pkt=lldp)
-        print str(pkt_in_lldp)
+        lldp = testutils.simpleLldpPacket()
+        pkt_in_lldp = testutils.genPacketIn(in_port=3, pkt=lldp)
 
-        lldp_ctl = testutils.simpleLldpPacket()
-        pkt_in_lldp1 = testutils.genPacketIn(buffer_id, in_port=in_port, pkt=lldp_ctl)
-        print str(pkt_in_lldp1)        
-        
         # controller0 should receive the same msg
         snd_list = ["switch", 0, pkt_in_lldp]
-        exp_list = [["controller", 0, pkt_in_lldp1]]
+        exp_list = [["controller", 0, pkt_in_lldp]]
         res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
         self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
-"""
+

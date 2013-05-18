@@ -940,8 +940,7 @@ def simpleLldpPacket(dl_dst='01:80:c2:00:00:0e',
                      lldp_port_id="020001",
                      lldp_ttl="0078",
                      trailer=None
-                     ):"""
-    """
+                     ):
     Return a simple LLDP packet
     Users shouldn't assume anything about this packet other than that
     it is a valid LLDP packet
@@ -955,8 +954,6 @@ def simpleLldpPacket(dl_dst='01:80:c2:00:00:0e',
     @param lldp_ttl ttl to be used in LLDP packet
     @param trailer string to be attatched on LLDP. Use genTrailer function to create a valid trailer
     @return LLDP packet
-    """
-"""
     chassisid_tlv = _tlvPack(CHASSISID_TYPE, lldp_chassis_id)
     portid_tlv = _tlvPack(PORTID_TYPE, lldp_port_id)
     ttl_tlv = _tlvPack(TTL_TYPE, lldp_ttl)
@@ -968,8 +965,7 @@ def simpleLldpPacket(dl_dst='01:80:c2:00:00:0e',
         pkt = str(ether) + payload + trailer
     else:
         pkt = str(ether) + payload
-    return pkt
-"""
+    return pkt"""
 
 def simpleLldpPacket(dl_dst='01:80:c2:00:00:0e',
                      dl_src='00:06:07:08:09:0a',
@@ -1082,7 +1078,7 @@ def genOUIString(flowvisor_name, ouiId = "a4230501", controller_name = None):
 
 """
 def genTrailer(controller_name, flowvisor_name):"""
-    """
+"""
     Generate a FlowVisor specific LLDP trailer
     FlowVisor adds a trailer right after a valid sets of tlv.
     The trailer is structured as follows:
@@ -1098,7 +1094,7 @@ def genTrailer(controller_name, flowvisor_name):"""
     @param controller_name controller name used in a trailer
     @param flowvisor_name FlowVisor name used in a trailer. Have to be more than or equal to 20bytes
     @return trailer as a string used between FlowVisor-switch LLDP exchange
-    """
+"""
 """
     CHASSIS_ID = 7
     MAGIC = [0xde,0xad,0xca,0xfe]
