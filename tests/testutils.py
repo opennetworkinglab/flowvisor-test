@@ -62,6 +62,9 @@ EXIST_SLICE0_IN_CONF_FILE = "controller0"
 EXIST_SLICE1_IN_CONF_FILE = "controller1"
 NUM_FLOWSPACE_EXIST_SLICE0 = 6
 
+SYSD_TYPE = 6
+OUI_TYPE = 127
+
 
 def spawnFlowVisor(parent, config_file=CONFIG_FILE, fv_cmd="flowvisor", fv_args=["-d","DEBUG"]):
     """
@@ -79,9 +82,9 @@ def spawnFlowVisor(parent, config_file=CONFIG_FILE, fv_cmd="flowvisor", fv_args=
     logprefix = "SpawnFlowVisor: "
     fv = None
     if not re.search("/",fv_cmd):
-       if not (subprocess.Popen("which " + fv_cmd, shell=True, stdout=subprocess.PIPE).stdout.read()):
-           parent.logger.error(logprefix + "Could not find " + fv_cmd)
-           return fv
+        if not (subprocess.Popen("which " + fv_cmd, shell=True, stdout=subprocess.PIPE).stdout.read()):
+            parent.logger.error(logprefix + "Could not find " + fv_cmd)
+            return fv
     cmdline = [fv_cmd] + fv_args + [CONFIG_FILE]
     parent.logger.info(logprefix + "Spawning '" +  " ".join(cmdline))
     fv=subprocess.Popen(cmdline,stdout=subprocess.PIPE,
@@ -107,12 +110,12 @@ def tearDownFlowVisor(parent, fv=None):
     os.kill(parent.fv.pid,signal.SIGTERM)
     parent.logger.info(logprefix + "Sleeping for a second to let things die")
     time.sleep(1)
-    parent.logger.info(logprefix + "Done cleaning up")  
+    parent.logger.info(logprefix + "Done cleaning up")
     if (fv != None):
-	f = open('fv-error.out', 'w')
-    	output = fv.stdout.read()
-	f.write(output)
-    	f.close()
+        f = open('fv-error.out', 'w')
+        output = fv.stdout.read()
+        f.write(output)
+        f.close()
     return True
 
 
@@ -218,7 +221,6 @@ def addController(parent, num):
     timeout=parent.timeout
     name = "controller" + str(num)
     port = CTLPORT_OFFSET + num
-
     try:
         ctr = fakedevice.FakeController(
             name= name,
@@ -261,9 +263,9 @@ def spawnApiClient(parent, user, pswd, rpcport = RPCPORT):
     """
     # Connect from 'API server' and get some info
     logprefix = "SpawnApiClient: "
-    url = "https://localhost:" + str(rpcport) 
+    url = "https://localhost:" + str(rpcport)
     passman = urllib2.HTTPPasswordMgrWithDefaultRealm()
-    passman.add_password(None, url, user, pswd) 
+    passman.add_password(None, url, user, pswd)
     authhandler = urllib2.HTTPBasicAuthHandler(passman)
     opener = urllib2.build_opener(authhandler)
     parent.logger.info(logprefix + "Connecting to: " + url)
@@ -280,9 +282,9 @@ def parseResponse(parent, data):
 def runCmd(parent, data, cmd, sv, rpcport = RPCPORT):
     j = { "id" : "fv-test", "method" : cmd, "jsonrpc" : "2.0" }
     h = {"Content-Type" : "application/json"}
-    if data is not None:  
+    if data is not None:
         j['params'] = data
-    url = "https://localhost:%d" % rpcport  
+    url = "https://localhost:%d" % rpcport
     req = urllib2.Request(url, json.dumps(j), h)
     try:
         ph = sv.open(req)
@@ -300,7 +302,7 @@ def runCmd(parent, data, cmd, sv, rpcport = RPCPORT):
 def setRule(parent, sv, rule, num_try=1, rpcport = RPCPORT):
     """
     Parses the command and additional parameters in the list, and send
-    it to FlowVisor via API interface. 
+    it to FlowVisor via API interface.
     Cmds are checked to have the right number of obliatory parameters. Optional
     ones are passed as an additional dict at the end of the rule list.
     @param parent parent must have logger (Logging object)
@@ -493,7 +495,7 @@ def chkFlowdb(parent, controller_number, switch_number, exp_count, exp_rewrites=
     @return False if fail, True on success
     """
     if exp_rewrites == -1:
-	exp_rewrites = exp_count
+        exp_rewrites = exp_count
     logprefix = "ChkFlowDB: "
     slicename = parent.controllers[controller_number].name
     dpid_str = str(switch_number)
@@ -686,11 +688,11 @@ def recvStats(parent, swId, typ):
     if isinstance(msg, typ):
         return (msg.header.xid, True)
     elif isinstance(msg, message.echo_request):
-        return recvStats(parent, 0, typ) 
+        return recvStats(parent, 0, typ)
     else:
         print "received %s" % msg
         return (-1,False)
-    
+
 
 def ofmsgSndCmp(parent, snd_list, exp_list, xid_ignore=False, hdr_only=False, ignore_cookie=True, cookies=[]):
     """
@@ -790,16 +792,16 @@ def ofmsgSndCmpWithXid(parent, snd_list, exp_list, xid_ignore=False, hdr_only=Fa
                         return (False, ret_xid)
                 else:
                     if ignore_cookie:
-		    	resp = parse.of_message_parse(response)
-			exp_m = parse.of_message_parse(exp_msg)
-			if (isinstance(resp,message.flow_mod) 
-				or isinstance(resp, message.flow_removed)):
-				resp.ignore_cookie = True
-				cookies.append(resp.cookie)
-		    else:
-			resp = response
-			exp_m = exp_msg
-		    if resp != exp_m:
+                        resp = parse.of_message_parse(response)
+                        exp_m = parse.of_message_parse(exp_msg)
+                        if (isinstance(resp,message.flow_mod)
+                                or isinstance(resp, message.flow_removed)):
+                            resp.ignore_cookie = True
+                            cookies.append(resp.cookie)
+                    else:
+                        resp = response
+                        exp_m = exp_msg
+                    if resp != exp_m:
                         parent.logger.error(logprefix + "Raw Expecting: " + _b2a(exp_msg))
                         parent.logger.error(logprefix + "Raw Response:  " + _b2a(response))
                         parent.logger.error(logprefix + "Parsed Expecting: " + _pktParse(exp_msg))
@@ -930,7 +932,7 @@ def simplePacket(pktlen=100,
     pkt = pkt/("D" * (pktlen - len(pkt)))
     return pkt
 
-
+"""
 def simpleLldpPacket(dl_dst='01:80:c2:00:00:0e',
                      dl_src='00:06:07:08:09:0a',
                      dl_type=ETHERTYPE_LLDP,
@@ -938,6 +940,40 @@ def simpleLldpPacket(dl_dst='01:80:c2:00:00:0e',
                      lldp_port_id="020001",
                      lldp_ttl="0078",
                      trailer=None
+                     ):
+    Return a simple LLDP packet
+    Users shouldn't assume anything about this packet other than that
+    it is a valid LLDP packet
+    It generates a packet with or without FlowVisor specific trailer.
+    Supports a few parameters
+    @param dl_dst Destination MAC
+    @param dl_src Source MAC
+    @param dl_type The value will simply put in the packet. Don't touch if you want valied LLDP packet
+    @param lldp_chassis_id chassis id to be used in LLDP packet
+    @param lldp_port_id port id to be used in LLDP packet
+    @param lldp_ttl ttl to be used in LLDP packet
+    @param trailer string to be attatched on LLDP. Use genTrailer function to create a valid trailer
+    @return LLDP packet
+    chassisid_tlv = _tlvPack(CHASSISID_TYPE, lldp_chassis_id)
+    portid_tlv = _tlvPack(PORTID_TYPE, lldp_port_id)
+    ttl_tlv = _tlvPack(TTL_TYPE, lldp_ttl)
+    eol_tlv = struct.pack("!H", 0x0000)
+    payload = chassisid_tlv + portid_tlv + ttl_tlv + eol_tlv
+
+    ether = scapy.Ether(src=dl_src, dst=dl_dst, type=dl_type)
+    if trailer:
+        pkt = str(ether) + payload + trailer
+    else:
+        pkt = str(ether) + payload
+    return pkt"""
+
+def simpleLldpPacket(dl_dst='01:80:c2:00:00:0e',
+                     dl_src='00:06:07:08:09:0a',
+                     dl_type=ETHERTYPE_LLDP,
+                     lldp_chassis_id="04e2b8dc3b1795",
+                     lldp_port_id="020001",
+                     lldp_ttl="0078",
+                     lldp_oui_id=None
                      ):
     """
     Return a simple LLDP packet
@@ -954,21 +990,38 @@ def simpleLldpPacket(dl_dst='01:80:c2:00:00:0e',
     @param trailer string to be attatched on LLDP. Use genTrailer function to create a valid trailer
     @return LLDP packet
     """
-    chassisid_tlv = _tlvPack(CHASSISID_TYPE, lldp_chassis_id)
-    portid_tlv = _tlvPack(PORTID_TYPE, lldp_port_id)
-    ttl_tlv = _tlvPack(TTL_TYPE, lldp_ttl)
-    eol_tlv = struct.pack("!H", 0x0000)
-    payload = chassisid_tlv + portid_tlv + ttl_tlv + eol_tlv
-
+    payload = None
+    if(lldp_chassis_id != None):
+        chassisid_tlv = _tlvPack(CHASSISID_TYPE, lldp_chassis_id)
+        #print("chassisid_tlv: ",chassisid_tlv)
+    if(lldp_port_id != None):
+        portid_tlv = _tlvPack(PORTID_TYPE, lldp_port_id)
+        #print("portid_tlv: ",portid_tlv)
+    if(lldp_ttl != None):
+        ttl_tlv = _tlvPack(TTL_TYPE, lldp_ttl)
+        #print("ttl_tlv: ",ttl_tlv)
+    if(lldp_oui_id != None):
+        #oui_info_tlv = genOUIString("magic flowvisor1","controller0")
+        #print("oui_info_tlv: ",oui_info_tlv)
+        #oui_string = lldp_oui_id + oui_info_tlv
+        oui_string = "controller00magic flowvisor10"
+        oui_tlv = _tlvPack(OUI_TYPE, lldp_oui_id, oui_string)
+        oui_str = genOUIString("magic flowvisor1", lldp_oui_id, "controller0")
+        print("oui_tlv: ",oui_tlv)
+        print("oui_str: ",oui_str)
+    #if(lldp_chassis_id != None and lldp_port_id != None and lldp_ttl != None and lldp_oui_id != None):
+        eol_tlv = struct.pack("!H", 0x0000)
+        #payload = chassisid_tlv + portid_tlv + ttl_tlv + oui_tlv + oui_str + eol_tlv
+        payload = oui_tlv + oui_str + eol_tlv
+        print("payload: ",payload)
     ether = scapy.Ether(src=dl_src, dst=dl_dst, type=dl_type)
-    if trailer:
-        pkt = str(ether) + payload + trailer
-    else:
+    if (payload!= None):
         pkt = str(ether) + payload
+    else:
+        pkt = str(ether)
     return pkt
 
-
-def genTrailer(controller_name, flowvisor_name):
+def genOUIString(flowvisor_name, ouiId = "a4230501", controller_name = None):
     """
     Generate a FlowVisor specific LLDP trailer
     FlowVisor adds a trailer right after a valid sets of tlv.
@@ -986,6 +1039,63 @@ def genTrailer(controller_name, flowvisor_name):
     @param flowvisor_name FlowVisor name used in a trailer. Have to be more than or equal to 20bytes
     @return trailer as a string used between FlowVisor-switch LLDP exchange
     """
+    if(controller_name != None):
+        len_ctl = len(controller_name)+1 # for null stop
+        ctl_name_lst = map(ord, list(controller_name))
+        #ctl_name_lst.append(0)
+    len_fv = len(flowvisor_name)+1 # for null stop
+    fv_name_lst = map(ord, list(flowvisor_name))
+    #fv_name_lst.append(0)
+    #oui_lst = map(ord,list(ouiId))
+
+    val_lst = []
+    if(controller_name != None):
+        #val_lst += oui_lst
+        val_lst += ctl_name_lst
+        val_lst += [0]
+        val_lst += fv_name_lst
+        val_lst += [0]
+        val_lst += [len_ctl]
+        val_lst += [len_fv]
+    else:
+        #val_lst += oui_lst
+        val_lst += fv_name_lst
+        val_lst += [0]
+        val_lst += [len_fv]
+    #print("val_lst: ",val_lst)
+    trailer = None
+    for i in val_lst:
+        if trailer:
+            trailer = trailer + struct.pack("!B", i)
+        else:
+            trailer = struct.pack("!B", i)
+    #trailer = _b2a(trailer)
+    return trailer
+    #return _tlvPack(127, trailer)
+
+
+
+
+"""
+def genTrailer(controller_name, flowvisor_name):"""
+"""
+    Generate a FlowVisor specific LLDP trailer
+    FlowVisor adds a trailer right after a valid sets of tlv.
+    The trailer is structured as follows:
+    -2bytes of TL (7bits of type and 9 bits of length. The type is 'chassis id'; = 1)
+    -1byte of chassis id
+    -At least 10bytes of 'slice name' ascii, followed by null stop
+     (Padded if the string is less than 10bytes)
+    -At least 20bytes of flowvisor name' ascii, followed by null stop
+     (Padded if the string is less than 20bytes)
+    -1byte of length-of-slice name (with padding + null)
+    -1byte of length-of-flowvisor name (with padding + null)
+    -4bytes of magic word (de ad ca fe)
+    @param controller_name controller name used in a trailer
+    @param flowvisor_name FlowVisor name used in a trailer. Have to be more than or equal to 20bytes
+    @return trailer as a string used between FlowVisor-switch LLDP exchange
+"""
+"""
     CHASSIS_ID = 7
     MAGIC = [0xde,0xad,0xca,0xfe]
     len_ctl = len(controller_name)+1 # for null stop
@@ -1010,9 +1120,9 @@ def genTrailer(controller_name, flowvisor_name):
             trailer = struct.pack("!B", i)
 
     return _tlvPack(1, _b2a(trailer))
+"""
 
-
-def _tlvPack(tlv_type, tlv_value):
+def _tlvPack(tlv_type, tlv_value, oui_info_string=None):
     """
     Generate a set of tlv to be used in LLDP packet
     @param tlv_type tlv_type
@@ -1021,10 +1131,19 @@ def _tlvPack(tlv_type, tlv_value):
     """
     tl_len = 2 #2bytes
     tlv_type_sft = (tlv_type << 9)
-    tlv_len = (len(tlv_value))/2 + tl_len
+    #tlv_len = (len(tlv_value))/2 + tl_len
+    if tlv_type != OUI_TYPE:
+        tlv_len = len(tlv_value)/2
+    elif(tlv_type == OUI_TYPE and oui_info_string != None):
+        tlv_len = len(tlv_value)/2 + len(oui_info_string) + 2 #2 for null char
+    #print("tlv_len: ",tlv_len)
     pack_tl = struct.pack("!H", (tlv_type_sft + tlv_len))
+    #print(pack_tl + _a2b(tlv_value))
+    #_a2b()  =  binascii.unhexlify(str)
+    #if tlv_type != OUI_TYPE:
     return (pack_tl + _a2b(tlv_value))
-
+    #else:
+    #    return(pack_tl)
 
 def genFloModFromPkt(parent, pkt, ing_port=ofp.OFPP_NONE, action_list=None, wildcards=0,
                      egr_port=None):
@@ -1123,7 +1242,7 @@ def genPacketOut(parent,
     for action_port in action_ports:
         act = action.action_output()
         act.port = action_port
-        act.max_len = 0x80
+        act.max_len = 0x80#Changes this from 0x80 to 0xc8
         parent.assertTrue(packet_out.actions.add(act), 'Could not add action to msg')
     if pkt is not None:
         packet_out.data = str(pkt)
