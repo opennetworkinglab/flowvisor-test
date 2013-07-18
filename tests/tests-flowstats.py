@@ -11,6 +11,7 @@ import oftest.cstruct as ofp
 import oftest.message as message
 import oftest.action as action
 import oftest.parse as parse
+import time
 
 # ------ Start: Mandatory portion on each test case file ------
 
@@ -195,9 +196,11 @@ class FlowStats(templatetest.TemplateTest):
 		
         snd_list = ["switch", 0, fsr]
         exp_list = [["controller", 0, fsr_cont]]
+        time.sleep(3)
         res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)  
+        time.sleep(3)
         self.assertTrue(res, "%s: flowstats: Received unexpected message" %(self.__class__.__name__))
-
+        #time.sleep(5)
 
 class FlowStatFragments(templatetest.TemplateTest):
     """
@@ -249,7 +252,7 @@ class FlowStatFragments(templatetest.TemplateTest):
         self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
         
         fsr_cont = message.flow_stats_reply()
-        fsr_cont.flags = 1    
+        fsr_cont.flags = 0    
 
 
         fsr = message.flow_stats_reply()
@@ -262,13 +265,16 @@ class FlowStatFragments(templatetest.TemplateTest):
         snd_list = ["switch",0,fsr]
         
         entry11 = _genFlowStatssEntry(table_id=1, match=fm1.match, cookie=0)
-        #fsr_cont.stats = [entry11]
-        #exp_list = [["controller", 0, fsr_cont]]
+        fsr_cont.stats = [entry11]
+        exp_list = [["controller", 0, fsr_cont]]
         
         """
         fsr_cont.stats = []
         exp_list = [["controller", 0, fsr_cont]]
         """
+        time.sleep(3)
+        #res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
+        #time.sleep(3)
         
         res = testutils.ofmsgSndCmpWithXid(self, snd_list, [["controller", 0, None]] , xid_ignore=True)
 
@@ -301,13 +307,10 @@ class FlowStatFragments(templatetest.TemplateTest):
         fsr_cont.stats = [entry11, entry22]
         #fsr_cont.stats = [entry22]
         exp_list = [["controller", 0, fsr_cont]]
-
+        #time.sleep(3)
         res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
-
+        time.sleep(3)
         self.assertTrue(res, "%s: flowstats: Received unexpected message" %(self.__class__.__name__))
-
-
-
 
 
 	
@@ -398,6 +401,7 @@ class FlowStatsSpecific(FlowStats):
        
         snd_list = ["switch", 0, fsr]
         exp_list = [["controller", 0, fsr_cont]]
+        time.sleep(3)
         res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)  
         self.assertTrue(res, "%s: flowstats: Received unexpected message" %(self.__class__.__name__))
 
@@ -413,6 +417,7 @@ class FlowStatsSpecific(FlowStats):
         snd_list = ["controller", 0, 0, msg]
         exp_list = [["controller", 0, fsr_cont]]
         (res, ret_xid) = testutils.ofmsgSndCmpWithXid(self, snd_list, exp_list, xid_ignore = True)
+        time.sleep(3)
         self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
 
 
