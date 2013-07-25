@@ -81,7 +81,24 @@ class addFlowSpace(Ping):
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: AddFlowSpace: Not success" %(self.__class__.__name__))
         self.logger.info("Raw received " + str(data))
+	
+	#Attempt to add corrupt flowspace. Should return MissingRequiredField Exception.
+	rule = ["add-flowspace", flowspace_name, flowspace_dpid, flowspace_priority, flowspace_match, {}]
+	(success, data) = testutils.setRule(self, self.sv, rule)
+	self.assertFalse(success, "%s: AddFlowSpace: Was success, but shouldn't be" %(self.__class__.__name__))
+	self.logger.info("Raw received " + str(data)) 
 
+	#Attempt to add corrupt flowspace. Should return SliceNotFound Exception.
+	flowspace_slice = [{"slice-name" : "FAKESLICE", "permission" : 7}]
+	rule = ["add-flowspace", flowspace_name, flowspace_dpid, flowspace_priority, flowspace_match, flowspace_slice, {}]
+	(success, data) = testutils.setRule(self, self.sv, rule)
+	self.assertFalse(success, "%s: AddFlowSpace: Was success, but shouldn't be" %(self.__class__.__name__))
+	self.logger.info("Raw received: " + str(data))
+	
+	#Attempt to add corrupt flowspace. Should return UnknownMatchField Exception.
+#	flowspace_match.append("FAKEFIELD" : 1)
+	
+		
         #Check if flowspace added.
         rule = ["list-flowspace", {}]
         (success, data) = testutils.setRule(self, self.sv, rule)
