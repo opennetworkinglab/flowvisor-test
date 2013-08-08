@@ -11,7 +11,6 @@ import oftest.cstruct as ofp
 import oftest.message as message
 import oftest.action as action
 import re
-
 # ------ Start: Mandatory portion on each test case file ------
 
 #@var basic_port_map Local copy of the configuration map from OF port
@@ -73,9 +72,7 @@ class Ping(templatetest.TemplateTest):
         self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
         self.logger.info("Ping: Received: %s" % data)
         self.assertTrue(data.has_key(exp_data_fv), "%s: Received unexpected message" %(self.__class__.__name__))
-        self.assertTrue(data.has_key(exp_data_db), "%s: Received unexpected message" %(self.__class__.__name__))
-
-
+        self.assertTrue(data.has_key(exp_data_db), "%s: Received unexpected message" %(self.__class__.__name__))	
 
 class ListFlowSpace(Ping):
     """
@@ -138,6 +135,11 @@ class ChangeFlowSpace(Ping):
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
 
+	#Attempt to remove a dummy flowspace. Should return FlowEntryNotFound Exception.	
+	rule = ["remove-flowspace", "DummyFlowName"]
+	(success, data) = testutils.setRule(self, self.sv,rule)
+	self.assertFalse(success, "%s: Was success but should not be" %(self.__class__.__name__))
+
 
 class CreateSlice(Ping):
     """
@@ -171,7 +173,7 @@ class CreateSlice(Ping):
         # Try to create a slice with a same name and different configuration.
         # Should be failed
         slice_random_email = "ctl2@bar.com"
-        rule = ["add-lice", slice_name, slice_pswd, slice_port, slice_random_email, {}]
+        rule = ["add-slice", slice_name, slice_pswd, slice_port, slice_random_email, {}]
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertFalse(success, "%s: Shouldn't be created" %(self.__class__.__name__))
 
@@ -186,7 +188,6 @@ class CreateSlice(Ping):
         self.assertTrue(success, "%s: The slice should be created" %(self.__class__.__name__))
 
 
-
 class DeleteSlice(Ping):
     """
     Delete_slice
@@ -198,6 +199,11 @@ class DeleteSlice(Ping):
         rule = ["remove-slice", testutils.EXIST_SLICE0_IN_CONF_FILE]
         (success, data) = testutils.setRule(self, self.sv, rule)
         self.assertTrue(success, "%s: DeleteSlice: Not success" %(self.__class__.__name__))
+	
+	#Attempt to delete a dummy slice name. Should return InvalidSliceName Exception
+	rule = ["remove-slice", "DummySliceName"]
+	(success, data) = testutils.setRule(self, self.sv, rule)
+	self.assertFalse(success, "%s: DeleteSlice: Success but should not be" %(self.__class__.__name__))
 
         remaining_fs = testutils.NUM_FLOWSPACE_IN_CONF_FILE-testutils.NUM_FLOWSPACE_EXIST_SLICE0
         # Check number of flow space
@@ -274,3 +280,94 @@ class SliceOwner(Ping):
         self.logger.debug("GetSliceInfo: Raw received: " + str(data))
         self.assertEqual(data['admin-contact'], new_email, "%s: Received unexpected contact_email" %(self.__class__.__name__))
         self.assertTrue(re.search(str(new_port), data['controller-url']), "%s: Received unexpected controller_port" %(self.__class__.__name__))
+
+class addFlowSpace(Ping):
+    def runTest(self):
+        #Add flowspace
+        flowspace_name = "dummyFlowName"
+        flowspace_dpid = "1"
+        flowspace_priority = 100
+        flowspace_match = {"in_port" : 1, "dl_src" : "00:00:00:00:00:02"}
+        flowspace_slice = [{"slice-name" : "controller0", "permission" : 7}]
+
+        rule = ["add-flowspace" , flowspace_name, flowspace_dpid, flowspace_priority, flowspace_match, flowspace_slice, {}]
+        (success, data) = testutils.setRule(self, self.sv, rule)
+        self.assertTrue(success, "%s: AddFlowSpace: Not success" %(self.__class__.__name__))
+        self.logger.info("Raw received " + str(data))
+
+        #Attempt to add corrupt flowspace. Should return MissingRequiredField Exception.
+        rule = ["add-flowspace", flowspace_name, flowspace_dpid, flowspace_priority, flowspace_match, {}]
+        (success, data) = testutils.setRule(self, self.sv, rule)
+        self.assertFalse(success, "%s: AddFlowSpace: Was success, but shouldn't be" %(self.__class__.__name__))
+        self.logger.info("Raw received " + str(data))
+
+        #Attempt to add corrupt flowspace. Should return SliceNotFound Exception.
+        flowspace_slice = [{"slice-name" : "FAKESLICE", "permission" : 7}]
+        rule = ["add-flowspace", flowspace_name, flowspace_dpid, flowspace_priority, flowspace_match, flowspace_slice, {}]
+        (success, data) = testutils.setRule(self, self.sv, rule)
+        self.assertFalse(success, "%s: AddFlowSpace: Was success, but shouldn't be" %(self.__class__.__name__))
+        self.logger.info("Raw received: " + str(data))
+
+        #Check if flowspace added.
+        rule = ["list-flowspace", {}]
+        (success, data) = testutils.setRule(self, self.sv, rule)
+        self.assertTrue(success, "%s: Not success" %(self.__class__.__name__))
+        num_flow = len(data)
+        self.logger.info("ListFlowSpace: Expected:     %s" %(testutils.NUM_FLOWSPACE_IN_CONF_FILE + 1))
+        self.logger.info("ListFlowSpace: Received:     %s" % num_flow)
+        self.logger.debug("ListFlowSpace: Raw received: %s" % data)
+        self.assertEqual(num_flow, testutils.NUM_FLOWSPACE_IN_CONF_FILE + 1, "%s: Received wrong number of flow space" %(self.__class__.__name__))
+
+        #Send packet across flowspace.
+        pkt = testutils.simplePacket(dl_src="00:00:00:00:00:02")
+        in_port = 1
+        msg = testutils.genPacketIn(in_port=in_port, pkt=pkt)
+
+        snd_list = ["switch", 0, msg]
+        exp_list = [["controller", 0, msg]]
+        res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
+        self.assertTrue(res, "%s: Received unexpected message" %(self.__class__.__name__))
+
+class listFVHealth(Ping): 
+    def runTest(self):
+	rule = ["list-fv-health"]
+	(success, data) = testutils.setRule(self, self.sv, rule)
+	self.assertTrue(success, "%s: Not success." %(self.__class__.__name__))
+
+class listDatapathStats(Ping):
+    def runTest(self):
+        rule = ["list-datapath-stats", testutils.SRC_MAC_FOR_CTL1_0]
+        (success, data) = testutils.setRule(self, self.sv, rule)
+        self.assertTrue(success, "%s: Not success." %(self.__class__.__name__))
+
+        #Test whether any packets dropped from this dpid. Should be {} or no packets dropped.
+        self.assertEqual(data['drop']['Total'], {}, "%s: Dropped some packets" %(self.__class__.__name__))
+        self.logger.debug("Received: " + str(data))
+
+        #Attempt to list stats for random DPID. Should return DPIDNotFound Exception.
+        randomDPID = "12:34:56:78:90"
+        rule = ["list-datapath-stats", randomDPID]
+        (success, data) = testutils.setRule(self, self.sv, rule)
+        self.assertFalse(success, "%s: Was success but should not be" %(self.__class__.__name__))
+
+class listSliceStats(Ping):
+    def runTest(self):
+	rule = ["list-slice-stats", testutils.EXIST_SLICE0_IN_CONF_FILE]
+	(success, data) = testutils.setRule(self, self.sv, rule)
+	self.assertTrue(success, "%s: Not success." %(self.__class__.__name__))
+
+class listSliceHealth(Ping):
+    def runTest(self):
+	rule = ["list-slice-health", testutils.EXIST_SLICE0_IN_CONF_FILE]
+	(success, data) = testutils.setRule(self, self.sv, rule)
+	self.assertTrue(success, "%s: Not success." %(self.__class__.__name__))
+	self.assertEqual(data['is-connected'], True, "%s: Slice not connected" %(self.__class__.__name__))
+	self.logger.debug("Received: " + str(data))
+
+class updateSlicePasswd(Ping):
+    def runTest(self):
+        new_passwd = "hello123"
+        slice_user = "controller0"
+        rule = ["update-slice-password", slice_user, new_passwd]
+        (success, data) = testutils.setRule(self, self.sv, rule)
+        self.assertTrue(success, "%s: UpdateSlicePasswd: Not success" %(self.__class__.__name__))
