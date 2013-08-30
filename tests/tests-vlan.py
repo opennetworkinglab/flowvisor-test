@@ -10,7 +10,7 @@ import oftest.cstruct as ofp
 import oftest.message as message
 import oftest.action as action
 import time
-
+import copy
 # ------ Start: Mandatory portion on each test case file ------
 
 #@var basic_port_map Local copy of the configuration map from OF port
@@ -164,8 +164,10 @@ class Internet2_Vlans(templatetest.TemplateTest):
         (self.fv, self.sv, sv_ret, ctl_ret, sw_ret) = testutils.setUpTestEnv(self, fv_cmd=basic_fv_cmd, rules=rules)
         self.chkSetUpCondition(self.fv, sv_ret, ctl_ret, sw_ret)
         fm = _genFlowModVlan(self)
+        fmExp = copy.deepcopy(fm)
+        fmExp.priority=testutils.getNewPriority([32000,33000],33000,0)
         snd_list = ["controller", 0, 0, fm]
-        exp_list = [["switch", 0, fm]]
+        exp_list = [["switch", 0, fmExp]]
 
         res = testutils.ofmsgSndCmp(self, snd_list, exp_list, xid_ignore=True)
         self.assertTrue(res, "%s: flowmod: Received unexpected message" %(self.__class__.__name__))
