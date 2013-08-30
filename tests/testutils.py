@@ -993,27 +993,16 @@ def simpleLldpPacket(dl_dst='01:80:c2:00:00:0e',
     payload = None
     if(lldp_chassis_id != None):
         chassisid_tlv = _tlvPack(CHASSISID_TYPE, lldp_chassis_id)
-        #print("chassisid_tlv: ",chassisid_tlv)
     if(lldp_port_id != None):
         portid_tlv = _tlvPack(PORTID_TYPE, lldp_port_id)
-        #print("portid_tlv: ",portid_tlv)
     if(lldp_ttl != None):
         ttl_tlv = _tlvPack(TTL_TYPE, lldp_ttl)
-        #print("ttl_tlv: ",ttl_tlv)
     if(lldp_oui_id != None):
-        #oui_info_tlv = genOUIString("magic flowvisor1","controller0")
-        #print("oui_info_tlv: ",oui_info_tlv)
-        #oui_string = lldp_oui_id + oui_info_tlv
         oui_string = "controller00magic flowvisor10"
         oui_tlv = _tlvPack(OUI_TYPE, lldp_oui_id, oui_string)
         oui_str = genOUIString("magic flowvisor1", lldp_oui_id, "controller0")
-        print("oui_tlv: ",oui_tlv)
-        print("oui_str: ",oui_str)
-    #if(lldp_chassis_id != None and lldp_port_id != None and lldp_ttl != None and lldp_oui_id != None):
         eol_tlv = struct.pack("!H", 0x0000)
-        #payload = chassisid_tlv + portid_tlv + ttl_tlv + oui_tlv + oui_str + eol_tlv
         payload = oui_tlv + oui_str + eol_tlv
-        print("payload: ",payload)
     ether = scapy.Ether(src=dl_src, dst=dl_dst, type=dl_type)
     if (payload!= None):
         pkt = str(ether) + payload
@@ -1042,15 +1031,11 @@ def genOUIString(flowvisor_name, ouiId = "a4230501", controller_name = None):
     if(controller_name != None):
         len_ctl = len(controller_name)+1 # for null stop
         ctl_name_lst = map(ord, list(controller_name))
-        #ctl_name_lst.append(0)
     len_fv = len(flowvisor_name)+1 # for null stop
     fv_name_lst = map(ord, list(flowvisor_name))
-    #fv_name_lst.append(0)
-    #oui_lst = map(ord,list(ouiId))
 
     val_lst = []
     if(controller_name != None):
-        #val_lst += oui_lst
         val_lst += ctl_name_lst
         val_lst += [0]
         val_lst += fv_name_lst
@@ -1058,22 +1043,16 @@ def genOUIString(flowvisor_name, ouiId = "a4230501", controller_name = None):
         val_lst += [len_ctl]
         val_lst += [len_fv]
     else:
-        #val_lst += oui_lst
         val_lst += fv_name_lst
         val_lst += [0]
         val_lst += [len_fv]
-    #print("val_lst: ",val_lst)
     trailer = None
     for i in val_lst:
         if trailer:
             trailer = trailer + struct.pack("!B", i)
         else:
             trailer = struct.pack("!B", i)
-    #trailer = _b2a(trailer)
     return trailer
-    #return _tlvPack(127, trailer)
-
-
 
 
 """
@@ -1131,19 +1110,12 @@ def _tlvPack(tlv_type, tlv_value, oui_info_string=None):
     """
     tl_len = 2 #2bytes
     tlv_type_sft = (tlv_type << 9)
-    #tlv_len = (len(tlv_value))/2 + tl_len
     if tlv_type != OUI_TYPE:
         tlv_len = len(tlv_value)/2
     elif(tlv_type == OUI_TYPE and oui_info_string != None):
         tlv_len = len(tlv_value)/2 + len(oui_info_string) + 2 #2 for null char
-    #print("tlv_len: ",tlv_len)
     pack_tl = struct.pack("!H", (tlv_type_sft + tlv_len))
-    #print(pack_tl + _a2b(tlv_value))
-    #_a2b()  =  binascii.unhexlify(str)
-    #if tlv_type != OUI_TYPE:
     return (pack_tl + _a2b(tlv_value))
-    #else:
-    #    return(pack_tl)
 
 def genFloModFromPkt(parent, pkt, ing_port=ofp.OFPP_NONE, action_list=None, wildcards=0,
                      egr_port=None):
@@ -1406,3 +1378,23 @@ def test_param_get(config, key, default=None):
         return val
     except:
         return default
+
+def getNewPriority(fsPrioList,matchPrio,fmPrio):
+    """
+    Given the flowspace priorities of intersections, 
+    flowmatchPriority and flowmod priority, it
+    calculates the new flowmod priority and returns it back
+    """
+    fsPrioList.sort()
+    prioLen = len(fsPrioList)
+    rng = 65536/prioLen
+    ind = fsPrioList.index(matchPrio) + 1
+    rngEnd = (rng * ind) - 1
+    rngStart = rngEnd - rng + 1 
+    np1 = ((fmPrio * rng)/65536) + rngStart
+    npFirstHalf = np1 & 0xFF00
+    npSecHalf = np1 & 0x00FF
+    fmPrioSecHalf = fmPrio & 0x00FF
+    npSecHalf = npSecHalf ^ fmPrioSecHalf
+    newPriority = npFirstHalf | npSecHalf
+    return newPriority
